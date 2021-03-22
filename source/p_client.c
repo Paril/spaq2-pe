@@ -582,12 +582,93 @@ void Add_TeamKill(edict_t * attacker)
 //
 // Gross, ugly, disgustuing hack section
 //
+// SPAQ
+
+// this function is an ugly as hell hack to fix some map flaws
+//
+// the coop spawn spots on some maps are SNAFU.  There are coop spots
+// with the wrong targetname as well as spots with no name at all
+//
+// we use carnal knowledge of the maps to fix the coop spot targetnames to match
+// that of the nearest named single player spot
+
+void SP_FixCoopSpots(edict_t *self)
+{
+    edict_t *spot;
+    vec3_t  d;
+
+    spot = NULL;
+
+    while (1) {
+        spot = G_Find(spot, FOFS(classname), "info_player_start");
+        if (!spot)
+            return;
+        if (!spot->targetname)
+            continue;
+        VectorSubtract(self->s.origin, spot->s.origin, d);
+        if (VectorLength(d) < 384) {
+            if ((!self->targetname) || Q_stricmp(self->targetname, spot->targetname) != 0) {
+//              gi.dprintf("FixCoopSpots changed %s at %s targetname from %s to %s\n", self->classname, vtos(self->s.origin), self->targetname, spot->targetname);
+                self->targetname = spot->targetname;
+            }
+            return;
+        }
+    }
+}
+
+// now if that one wasn't ugly enough for you then try this one on for size
+// some maps don't have any coop spots at all, so we need to create them
+// where they should have been
+
+void SP_CreateCoopSpots(edict_t *self)
+{
+    edict_t *spot;
+
+    if (Q_stricmp(level.mapname, "security") == 0) {
+        spot = G_Spawn();
+        spot->classname = "info_player_coop";
+        spot->s.origin[0] = 188 - 64;
+        spot->s.origin[1] = -164;
+        spot->s.origin[2] = 80;
+        spot->targetname = "jail3";
+        spot->s.angles[1] = 90;
+
+        spot = G_Spawn();
+        spot->classname = "info_player_coop";
+        spot->s.origin[0] = 188 + 64;
+        spot->s.origin[1] = -164;
+        spot->s.origin[2] = 80;
+        spot->targetname = "jail3";
+        spot->s.angles[1] = 90;
+
+        spot = G_Spawn();
+        spot->classname = "info_player_coop";
+        spot->s.origin[0] = 188 + 128;
+        spot->s.origin[1] = -164;
+        spot->s.origin[2] = 80;
+        spot->targetname = "jail3";
+        spot->s.angles[1] = 90;
+
+        return;
+    }
+}
+
+// SPAQ
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32)
 The normal starting point for a level.
 */
 void SP_info_player_start( edict_t * self )
 {
+	// SPAQ
+    if (!coop->value)
+        return;
+    if (Q_stricmp(level.mapname, "security") == 0) {
+        // invoke one of our gross, ugly, disgusting hacks
+        self->think = SP_CreateCoopSpots;
+        self->nextthink = level.framenum + 1;
+    }
+	// SPAQ
 }
 
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32)
@@ -598,11 +679,44 @@ void SP_info_player_deathmatch(edict_t * self)
 	SP_misc_teleporter_dest(self);
 }
 
+// SPAQ
+/*QUAKED info_player_coop (1 0 1) (-16 -16 -24) (16 16 32)
+potential spawning position for coop games
+*/
+
+void SP_info_player_coop(edict_t *self)
+{
+    if (!coop->value) {
+        G_FreeEdict(self);
+        return;
+    }
+
+    if ((Q_stricmp(level.mapname, "jail2") == 0)   ||
+        (Q_stricmp(level.mapname, "jail4") == 0)   ||
+        (Q_stricmp(level.mapname, "mine1") == 0)   ||
+        (Q_stricmp(level.mapname, "mine2") == 0)   ||
+        (Q_stricmp(level.mapname, "mine3") == 0)   ||
+        (Q_stricmp(level.mapname, "mine4") == 0)   ||
+        (Q_stricmp(level.mapname, "lab") == 0)     ||
+        (Q_stricmp(level.mapname, "boss1") == 0)   ||
+        (Q_stricmp(level.mapname, "fact3") == 0)   ||
+        (Q_stricmp(level.mapname, "biggun") == 0)  ||
+        (Q_stricmp(level.mapname, "space") == 0)   ||
+        (Q_stricmp(level.mapname, "command") == 0) ||
+        (Q_stricmp(level.mapname, "power2") == 0) ||
+        (Q_stricmp(level.mapname, "strike") == 0)) {
+        // invoke one of our gross, ugly, disgusting hacks
+        self->think = SP_FixCoopSpots;
+        self->nextthink = level.framenum + 1;
+    }
+}
+// SPAQ
+
 /*QUAKED info_player_intermission (1 0 1) (-16 -16 -24) (16 16 32)
 The deathmatch intermission point will be at one of these
 Use 'angles' instead of 'angle', so you can set pitch or roll as well as yaw.  'pitch yaw roll'
 */
-void SP_info_player_intermission(void)
+void SP_info_player_intermission(edict_t *self)
 {
 }
 
@@ -1401,6 +1515,15 @@ void player_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage
 		// always reset chase to killer, even if NULL
 		if(limchasecam->value < 2 && attacker && attacker->client)
 			self->client->resp.last_chase_target = attacker;
+
+		// SPAQ
+        // clear inventory
+        // this is kind of ugly, but it's how we want to handle keys in coop
+        for (n = 0; n < game.num_items; n++) {
+            if (coop->value && itemlist[n].flags & IT_KEY)
+                self->client->resp.coop_respawn.inventory[n] = self->client->inventory[n];
+        }
+		// SPAQ
 	}
 	// remove powerups
 	self->client->quad_framenum = 0;
@@ -1665,13 +1788,17 @@ void SelectSpawnPoint(edict_t * ent, vec3_t origin, vec3_t angles)
 		spot = SelectDeathmatchSpawnPoint();
 	else if (!(gameSettings & GS_DEATHMATCH) && ent->client->resp.team && !in_warmup) {
 		spot = SelectTeamplaySpawnPoint(ent);
-	} else {
+	// SPAQ
+	} else if (deathmatch->value) {
+	// SPAQ
 		spot = SelectDeathmatchSpawnPoint();
 	}
 
 	// find a single player start spot
 	if (!spot) {
-		gi.dprintf("Warning: failed to find deathmatch spawn point\n");
+		// SPAQ
+		if (deathmatch->value)
+			gi.dprintf("Warning: failed to find deathmatch spawn point\n");
 
 		while ((spot = G_Find(spot, FOFS(classname), "info_player_start")) != NULL) {
 			if (!game.spawnpoint[0] && !spot->targetname)
@@ -2174,6 +2301,40 @@ void EquipClientDM(edict_t * ent)
 	}
 }
 
+// SPAQ
+void EquipClientSPAQ(edict_t * ent)
+{
+	EquipClientDM(ent);
+
+	// Only real change is that we start out fully rounded out,
+	// so that new weapons we pick up have a mag in them.
+	// We also start with two mk23 mags.
+	gclient_t *client = ent->client;
+
+	client->mp5_rds = client->mp5_max;
+	client->m4_rds = client->m4_max;
+	client->shot_rds = client->shot_max;
+	client->cannon_rds = client->cannon_max;
+	client->shot_rds = client->shot_max;
+	client->sniper_rds = client->sniper_max;
+	client->dual_rds = client->mk23_max;
+	client->mk23_rds = client->mk23_max;
+	
+	int itemNum;
+
+	if (*strtwpn->string)
+		itemNum = GetWeaponNumFromArg(strtwpn->string);
+	else
+		itemNum = 0;
+
+	if (itemNum <= 1)
+	{
+		gitem_t *item = GET_ITEM(MK23_ANUM);
+		client->inventory[ITEM_INDEX(item)] = 2;
+	}
+}
+// SPAQ
+
 // Igor[Rock] ende
 
 /*
@@ -2184,6 +2345,9 @@ Called when a player connects to a server or respawns in
 a deathmatch.
 ============
 */
+
+void SaveClientData(edict_t *ent);
+void FetchClientEntData(edict_t *ent);
 
 void PutClientInServer(edict_t * ent)
 {
@@ -2207,65 +2371,92 @@ void PutClientInServer(edict_t * ent)
 	FreeClientEdicts(client);
 
 	// deathmatch wipes most client data every spawn
-	resp = client->resp;
 	pers = client->pers;
+	resp = client->resp;
+
+	// SPAQ
+	if (coop->value)
+	{
+		int			n;
+
+		resp = client->resp;
+
+		client->pers = resp.coop_respawn;
+		if (resp.score > client->pers.score)
+			client->pers.score = resp.score;
+	}
+	else if (!deathmatch->value)
+	{
+		memset (&resp, 0, sizeof(resp));
+	}
+	// SPAQ
 
 	memset(client, 0, sizeof(*client));
 
 	client->pers = pers;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		FetchClientEntData(ent);
+	// SPAQ
+
 	client->resp = resp;
 
 	client->clientNum = index;
 
 	//zucc give some ammo
 	// changed to mk23
-	item = GET_ITEM( MK23_NUM );
-	client->selected_item = ITEM_INDEX( item );
-	client->inventory[client->selected_item] = 1;
+	// SPAQ
+	if (client->pers.health <= 0)
+	{
+	// SPAQ
+		item = GET_ITEM( MK23_NUM );
+		client->selected_item = ITEM_INDEX( item );
+		client->inventory[client->selected_item] = 1;
 
-	client->weapon = item;
-	client->lastweapon = item;
+		client->weapon = item;
+		client->lastweapon = item;
 
-	if (WPF_ALLOWED( KNIFE_NUM )) {
-		item = GET_ITEM( KNIFE_NUM );
-		client->inventory[ITEM_INDEX( item )] = 1;
-		if (!WPF_ALLOWED( MK23_NUM )) {
-			client->selected_item = ITEM_INDEX( item );
-			client->weapon = item;
-			client->lastweapon = item;
+		if (WPF_ALLOWED( KNIFE_NUM )) {
+			item = GET_ITEM( KNIFE_NUM );
+			client->inventory[ITEM_INDEX( item )] = 1;
+			if (!WPF_ALLOWED( MK23_NUM )) {
+				client->selected_item = ITEM_INDEX( item );
+				client->weapon = item;
+				client->lastweapon = item;
+			}
 		}
-	}
-	client->curr_weap = client->weapon->typeNum;
+		client->curr_weap = client->weapon->typeNum;
 
 
-	ent->health = 100;
-	ent->max_health = 100;
+		ent->health = 100;
+		ent->max_health = 100;
 	
-	client->max_pistolmags = 2;
-	client->max_shells = 14;
-	client->max_mp5mags = 2;
-	client->max_m4mags = 1;
-	client->max_sniper_rnds = 20;
+		client->max_pistolmags = 2;
+		client->max_shells = 14;
+		client->max_mp5mags = 2;
+		client->max_m4mags = 1;
+		client->max_sniper_rnds = 20;
 
-	client->knife_max = 10;
-	client->grenade_max = 2;
+		client->knife_max = 10;
+		client->grenade_max = 2;
 
-	client->mk23_max = 12;
-	client->mp5_max = 30;
-	client->m4_max = 24;
-	client->shot_max = 7;
-	client->sniper_max = 6;
-	client->cannon_max = 2;
-	client->dual_max = 24;
-	if (WPF_ALLOWED( MK23_NUM )) {
-		client->mk23_rds = client->mk23_max;
-		client->dual_rds = client->mk23_max;
+		client->mk23_max = 12;
+		client->mp5_max = 30;
+		client->m4_max = 24;
+		client->shot_max = 7;
+		client->sniper_max = 6;
+		client->cannon_max = 2;
+		client->dual_max = 24;
+		if (WPF_ALLOWED( MK23_NUM )) {
+			client->mk23_rds = client->mk23_max;
+			client->dual_rds = client->mk23_max;
+		}
+	// SPAQ
 	}
+	// SPAQ
 
-	client->knife_max = 10;
-	client->grenade_max = 2;
 	client->desired_fov = 90;
-
 
 	// clear entity values
 	ent->groundentity = NULL;
@@ -2367,17 +2558,28 @@ void PutClientInServer(edict_t * ent)
 		return;
 	}
 
-	// items up here so that the bandolier will change equipclient below
-	if (allitem->value)
-		AllItems(ent);
+	// SPAQ
+	if (client->pers.health <= 0)
+	{
+	// SPAQ
+		// items up here so that the bandolier will change equipclient below
+		if (allitem->value)
+			AllItems(ent);
 
-	if (gameSettings & GS_WEAPONCHOOSE)
-		EquipClient(ent);
-	else
-		EquipClientDM(ent);
+		// SPAQ
+		if (!deathmatch->value)
+			EquipClientSPAQ(ent);
+		// SPAQ
+		else if (gameSettings & GS_WEAPONCHOOSE)
+			EquipClient(ent);
+		else
+			EquipClientDM(ent);
 
-	if (allweapon->value)
-		AllWeapons(ent);
+		if (allweapon->value)
+			AllWeapons(ent);
+	// SPAQ
+	}
+	// SPAQ
 
 	// force the current weapon up
 	client->newweapon = client->weapon;
@@ -2394,55 +2596,86 @@ deathmatch mode, so clear everything out before starting them.
 */
 void ClientBeginDeathmatch(edict_t * ent)
 {
-	int checkFrame, saved_team = ent->client->resp.team;
+	// SPAQ
+    // if there is already a body waiting for us (a loadgame), just
+    // take it, otherwise spawn one from scratch
+    if (deathmatch->value || !ent->inuse)
+	{
+	// SPAQ
+		int saved_team = ent->client->resp.team;
 
-	G_InitEdict(ent);
+		G_InitEdict(ent);
 
-	memset(&ent->client->resp, 0, sizeof(ent->client->resp));
+		memset(&ent->client->resp, 0, sizeof(ent->client->resp));
 
-	ent->client->resp.enterframe = level.framenum;
-	ent->client->resp.gldynamic = 1;
+		ent->client->resp.enterframe = level.framenum;
+		ent->client->resp.gldynamic = 1;
 
-	if (!ent->client->pers.connected) {
-		ent->client->pers.connected = true;
-		ClientUserinfoChanged(ent, ent->client->pers.userinfo);
-	}
+		if (!ent->client->pers.connected) {
+			ent->client->pers.connected = true;
+			ClientUserinfoChanged(ent, ent->client->pers.userinfo);
+		}
 
-	// clear weapons and items if not auto_equipt
-	if (!auto_equip->value || !(gameSettings & GS_WEAPONCHOOSE)) {
-		ent->client->pers.chosenWeapon = NULL;
-		ent->client->pers.chosenItem = NULL;
-		ent->client->pers.dm_selected = 0;
-		ent->client->pers.menu_shown = 0;
-	} else {
-		if (teamplay->value)
+		// clear weapons and items if not auto_equipt
+		if (!auto_equip->value || !(gameSettings & GS_WEAPONCHOOSE)) {
+			ent->client->pers.chosenWeapon = NULL;
+			ent->client->pers.chosenItem = NULL;
+			ent->client->pers.dm_selected = 0;
 			ent->client->pers.menu_shown = 0;
-	}
+		} else {
+			if (teamplay->value)
+				ent->client->pers.menu_shown = 0;
+		}
 
-	if (!dm_choose->value && !warmup->value) {
-		if (!ent->client->pers.chosenWeapon) {
-			if (WPF_ALLOWED(MP5_NUM))
-				ent->client->pers.chosenWeapon = GET_ITEM(MP5_NUM);
-			else if (WPF_ALLOWED(MK23_NUM))
-				ent->client->pers.chosenWeapon = GET_ITEM(MK23_NUM);
-			else if (WPF_ALLOWED(KNIFE_NUM))
-				ent->client->pers.chosenWeapon = GET_ITEM(KNIFE_NUM);
-			else
+		if (!dm_choose->value && !warmup->value) {
+			if (!ent->client->pers.chosenWeapon) {
+				if (WPF_ALLOWED(MP5_NUM))
+					ent->client->pers.chosenWeapon = GET_ITEM(MP5_NUM);
+				else if (WPF_ALLOWED(MK23_NUM))
+					ent->client->pers.chosenWeapon = GET_ITEM(MK23_NUM);
+				else if (WPF_ALLOWED(KNIFE_NUM))
+					ent->client->pers.chosenWeapon = GET_ITEM(KNIFE_NUM);
+				else
+					ent->client->pers.chosenWeapon = GET_ITEM(MK23_NUM);
+			}
+			if (!ent->client->pers.chosenItem)
+				ent->client->pers.chosenItem = GET_ITEM(KEV_NUM);
+		} else {
+			if (wp_flags->value < 2 && !ent->client->pers.chosenWeapon)
 				ent->client->pers.chosenWeapon = GET_ITEM(MK23_NUM);
 		}
-		if (!ent->client->pers.chosenItem)
-			ent->client->pers.chosenItem = GET_ITEM(KEV_NUM);
-	} else {
-		if (wp_flags->value < 2 && !ent->client->pers.chosenWeapon)
-			ent->client->pers.chosenWeapon = GET_ITEM(MK23_NUM);
+
+		TourneyNewPlayer(ent);
+		vInitClient(ent);
+
+		// SPAQ
+		if (!deathmatch->value)
+		    ent->client->resp.coop_respawn = ent->client->pers;
+		// SPAQ
+
+		// locate ent at a spawn point
+		PutClientInServer(ent);
+
+		// TNG:Freud Automaticly join saved teams.
+		if (saved_team && auto_join->value && teamplay->value)
+			JoinTeam(ent, saved_team, 1);
+	// SPAQ
 	}
+	else
+	{
+		if (!ent->client->pers.connected) {
+			ent->client->pers.connected = true;
+			ClientUserinfoChanged(ent, ent->client->pers.userinfo);
+		}
 
-
-	TourneyNewPlayer(ent);
-	vInitClient(ent);
-
-	// locate ent at a spawn point
-	PutClientInServer(ent);
+        // the client has cleared the client side viewangles upon
+        // connecting to the server, which is different than the
+        // state when the game is saved, so we need to compensate
+        // with deltaangles
+        for (int i = 0 ; i < 3 ; i++)
+            ent->client->ps.pmove.delta_angles[i] = ANGLE2SHORT(ent->client->ps.viewangles[i]);
+	}
+	// SPAQ
 
 	if (level.intermission_framenum) {
 		MoveClientToIntermission(ent);
@@ -2459,11 +2692,6 @@ void ClientBeginDeathmatch(edict_t * ent)
 	gi.bprintf(PRINT_HIGH, "%s entered the game\n", ent->client->pers.netname);
 	IRC_printf(IRC_T_SERVER, "%n entered the game", ent->client->pers.netname);
 
-	// TNG:Freud Automaticly join saved teams.
-	if (saved_team && auto_join->value && teamplay->value)
-		JoinTeam(ent, saved_team, 1);
-
-
 	if (!level.intermission_framenum) {
 		if (!teamplay->value && ent->solid == SOLID_NOT) {
 			gi.bprintf(PRINT_HIGH, "%s became a spectator\n", ent->client->pers.netname);
@@ -2475,7 +2703,7 @@ void ClientBeginDeathmatch(edict_t * ent)
 	ent->client->resp.motd_refreshes = 1;
 
 	//AQ2:TNG - Slicer: Set time to check clients
-	checkFrame = level.framenum + (int)(check_time->value * HZ);
+	int checkFrame = level.framenum + (int)(check_time->value * HZ);
 	ent->client->resp.checkframe[0] = checkFrame;
 	ent->client->resp.checkframe[1] = checkFrame + 2 * HZ;
 	ent->client->resp.checkframe[2] = checkFrame + 3 * HZ;
@@ -2497,7 +2725,6 @@ to be placed into the game.  This will happen every level load.
 void ClientBegin(edict_t * ent)
 {
 	ent->client = game.clients + (ent - g_edicts - 1);
-
 	ClientBeginDeathmatch(ent);
 }
 
@@ -2644,8 +2871,6 @@ qboolean ClientConnect(edict_t * ent, char *userinfo)
 		ClientDisconnect(ent);
 	}
 
-	memset(ent->client, 0, sizeof(gclient_t));
-
 	Q_strncpyz(ent->client->pers.ip, ipaddr_buf, sizeof(ent->client->pers.ip));
 	Q_strncpyz(ent->client->pers.userinfo, userinfo, sizeof(ent->client->pers.userinfo));
 
@@ -2745,6 +2970,10 @@ void ClientDisconnect(edict_t * ent)
 	ent->client->pers.connected = false;
 
 	teams_changed = true;
+
+	if (deathmatch->value) {
+		memset(ent->client, 0, sizeof(gclient_t));
+	}
 }
 
 void CreateGhost(edict_t * ent)
@@ -3195,12 +3424,15 @@ void ClientBeginServerFrame(edict_t * ent)
 		client->punch_desired = false;
 
 		int idleframes = ppl_idletime->value * HZ;
-		if( (idleframes > 0) && client->resp.idletime && IS_ALIVE(ent) && (level.framenum >= client->resp.idletime + idleframes) )
-		{
-			//plays a random sound/insane sound, insane1-9.wav
-			gi.sound( ent, CHAN_VOICE, gi.soundindex(va( "insane/insane%i.wav", rand() % 9 + 1 )), 1, ATTN_NORM, 0 );
-			client->resp.idletime = 0;
-		}
+		// SPAQ
+		if (deathmatch->value)
+		// SPAQ
+			if( (idleframes > 0) && client->resp.idletime && IS_ALIVE(ent) && (level.framenum >= client->resp.idletime + idleframes) )
+			{
+				//plays a random sound/insane sound, insane1-9.wav
+				gi.sound( ent, CHAN_VOICE, gi.soundindex(va( "insane/insane%i.wav", rand() % 9 + 1 )), 1, ATTN_NORM, 0 );
+				client->resp.idletime = 0;
+			}
 
 		if (client->autoreloading && (client->weaponstate == WEAPON_END_MAG)
 			&& (client->curr_weap == MK23_NUM)) {

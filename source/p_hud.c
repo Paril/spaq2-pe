@@ -135,6 +135,29 @@ void BeginIntermission(edict_t *targ)
 	}
 
 	level.changemap = targ->map;
+
+	// SPAQ
+	if (strstr(level.changemap, "*")) {
+        if (coop->value) {
+            for (i = 0 ; i < maxclients->value ; i++) {
+                edict_t *client = g_edicts + 1 + i;
+                if (!client->inuse)
+                    continue;
+                // strip players of all keys between units
+                for (int n = 0; n < MAX_ITEMS; n++) {
+                    if (itemlist[n].flags & IT_KEY)
+                        client->client->inventory[n] = client->client->pers.inventory[n] = 0;
+                }
+            }
+        }
+    } else {
+        if (!deathmatch->value) {
+            level.intermission_exit = 1;     // go immediately to the next level
+            return;
+        }
+    }
+	// SPAQ
+
 	level.intermission_exit = 0;
 
 	// find an intermission spot
@@ -310,6 +333,49 @@ void Cmd_Score_f(edict_t *ent)
 
 
 /*
+==================
+HelpComputer
+
+Draw help computer.
+==================
+*/
+void HelpComputer(edict_t *ent)
+{
+    char    string[1024];
+    char    *sk;
+
+    if (skill->value == 0)
+        sk = "easy";
+    else if (skill->value == 1)
+        sk = "medium";
+    else if (skill->value == 2)
+        sk = "hard";
+    else
+        sk = "hard+";
+
+    // send the layout
+    Com_sprintf(string, sizeof(string),
+               "xv 32 yv 8 picn help "         // background
+               "xv 202 yv 12 string2 \"%s\" "      // skill
+               "xv 0 yv 24 cstring2 \"%s\" "       // level name
+               "xv 0 yv 54 cstring2 \"%s\" "       // help 1
+               "xv 0 yv 110 cstring2 \"%s\" "      // help 2
+               "xv 50 yv 164 string2 \" kills     goals    secrets\" "
+               "xv 50 yv 172 string2 \"%3i/%3i     %i/%i       %i/%i\" ",
+               sk,
+               level.level_name,
+               game.helpmessage1,
+               game.helpmessage2,
+               level.killed_monsters, level.total_monsters,
+               level.found_goals, level.total_goals,
+               level.found_secrets, level.total_secrets);
+
+    gi.WriteByte(svc_layout);
+    gi.WriteString(string);
+    gi.unicast(ent, true);
+}
+
+/*
   ==================
   Cmd_Help_f
   
@@ -318,12 +384,115 @@ void Cmd_Score_f(edict_t *ent)
 */
 void Cmd_Help_f (edict_t * ent)
 {
-	// this is for backwards compatability
-	Cmd_Score_f (ent);
+	// SPAQ
+	if (deathmatch->value)
+	{
+	// SPAQ
+		// this is for backwards compatability
+		Cmd_Score_f (ent);
+	// SPAQ
+		return;
+	}
+
+    if (ent->client->layout == LAYOUT_HELP && (ent->client->pers.game_helpchanged == game.helpchanged)) {
+        ent->client->layout = LAYOUT_NONE;
+        return;
+    }
+
+    ent->client->layout = LAYOUT_HELP;
+    ent->client->pers.helpchanged = 0;
+    HelpComputer(ent);
+	// SPAQ
 }
 
 
 //=======================================================================
+
+// SPAQ
+// originally from Zoid's CTF
+// Some mods actually exploit CS_STATUSBAR to take space up to CS_AIRACCEL
+#define CS_SIZE(cs) \
+    ((cs) >= CS_STATUSBAR && (cs) < CS_AIRACCEL ? \
+      MAX_QPATH * (CS_AIRACCEL - (cs)) : MAX_QPATH)
+
+static int SetSPAQViewString(edict_t *ent, edict_t *monster)
+{
+	int cs = CS_GENERAL + monster->s.number;
+	char temp[CS_SIZE(CS_GENERAL)] = { 0 };
+
+	if (MONSTER_IS_CHAMP(monster, CHAMPION_HASTE))
+		Q_strncatz(temp, "Haste, ", sizeof(temp));
+	if (MONSTER_IS_CHAMP(monster, CHAMPION_HELMET))
+		Q_strncatz(temp, "Helmet, ", sizeof(temp));
+	if (MONSTER_IS_CHAMP(monster, CHAMPION_VEST))
+		Q_strncatz(temp, "Vest, ", sizeof(temp));
+	if (MONSTER_IS_CHAMP(monster, CHAMPION_SLOW_BLEED))
+		Q_strncatz(temp, "Clotted, ", sizeof(temp));
+	if (MONSTER_IS_CHAMP(monster, CHAMPION_STRENGTH))
+		Q_strncatz(temp, "Strong, ", sizeof(temp));
+	if (MONSTER_IS_CHAMP(monster, CHAMPION_STRONK))
+		Q_strncatz(temp, "Healthy, ", sizeof(temp));
+
+	if (!temp[0])
+		return 0;
+
+	temp[strlen(temp) - 2] = 0;
+	gi.configstring(cs, temp);
+
+	return cs;
+}
+
+void SetSPAQIDView(edict_t * ent)
+{
+	vec3_t forward, dir;
+	trace_t tr;
+	edict_t *who, *best;
+	float bd = 0.9f;
+	float d;
+    int i;
+
+	ent->client->ps.stats[STAT_ID_VIEW] = 0;
+
+	if (ent->solid == SOLID_NOT)
+		return;
+
+	if (ent->client->pers.id == 1)
+		return;
+
+	AngleVectors(ent->client->v_angle, forward, NULL, NULL);
+	VectorScale(forward, 8192, forward);
+	VectorAdd(ent->s.origin, forward, forward);
+	PRETRACE();
+	tr = gi.trace(ent->s.origin, NULL, NULL, forward, ent, MASK_SHOT);
+	POSTTRACE();
+	if (tr.fraction < 1 && tr.ent && (tr.ent->svflags & SVF_MONSTER) && tr.ent->monsterinfo.champion) {
+		ent->client->ps.stats[STAT_ID_VIEW] = SetSPAQViewString(ent, tr.ent);
+		return;
+	}
+
+	AngleVectors(ent->client->v_angle, forward, NULL, NULL);
+	best = NULL;
+	for (i = 1; i <= game.maxclients; i++) {
+		who = g_edicts + i;
+		if (!who->inuse)
+			continue;
+
+		if (!(who->svflags & SVF_MONSTER) || !who->monsterinfo.champion)
+			continue;
+
+		VectorSubtract(who->s.origin, ent->s.origin, dir);
+		VectorNormalize(dir);
+		d = DotProduct(forward, dir);
+		if (d > bd && visible(ent, who, MASK_SHOT)) {
+			bd = d;
+			best = who;
+		}
+	}
+	if (best != NULL && bd > 0.90) {
+		ent->client->ps.stats[STAT_ID_VIEW] = SetSPAQViewString(ent, best);
+	}
+}
+// SPAQ
 
 /*
   ===============
@@ -542,7 +711,11 @@ void G_SetStats (edict_t * ent)
 		// bandaging icon / current weapon if not shown
 		//
 		// TNG: Show health icon when bandaging (thanks to Dome for this code)
-		if (ent->client->weaponstate == WEAPON_BANDAGING || ent->client->bandaging || ent->client->bandage_stopped)
+		// SPAQ
+		if (ent->client->pers.helpchanged && ((level.framenum / FRAMEDIV) & 8))
+			ent->client->ps.stats[STAT_HELPICON] = gi.imageindex("i_help");
+		// SPAQ
+		else if (ent->client->weaponstate == WEAPON_BANDAGING || ent->client->bandaging || ent->client->bandage_stopped)
 			ent->client->ps.stats[STAT_HELPICON] = level.pic_health;
 		else if ((ent->client->pers.hand == CENTER_HANDED || ent->client->ps.fov > 91) && ent->client->weapon)
 			ent->client->ps.stats[STAT_HELPICON] = level.pic_items[ent->client->weapon->typeNum];
@@ -594,7 +767,12 @@ void G_SetStats (edict_t * ent)
 		ent->client->ps.stats[STAT_HELPICON] = 0;
 		ent->client->ps.stats[STAT_ID_VIEW] = 0;
 	} else {
-		SetIDView(ent);
+		// SPAQ
+		if (!deathmatch->value)
+			SetSPAQIDView(ent);
+		else
+		// SPAQ
+			SetIDView(ent);
 	}
 
 	//FIREBLADE

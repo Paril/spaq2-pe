@@ -157,34 +157,71 @@ Knife_ProjectSource(gclient_t* client, vec3_t point, vec3_t distance,
 	G_ProjectSource(point, _distance, forward, right, result);
 }
 
-
-
+// SPAQ
 /*
 ===============
 PlayerNoise
 
-  Each player can have two noise objects associated with it:
-  a personal noise (jumping, pain, weapon firing), and a weapon
-  target noise (bullet wall impacts)
+Each player can have two noise objects associated with it:
+a personal noise (jumping, pain, weapon firing), and a weapon
+target noise (bullet wall impacts)
 
-		Monsters that don't directly see the player can move
-		to a noise in hopes of seeing the player from there.
-		===============
+Monsters that don't directly see the player can move
+to a noise in hopes of seeing the player from there.
+===============
 */
-void PlayerNoise(edict_t* who, vec3_t where, int type)
+void PlayerNoise(edict_t *who, vec3_t where, int type)
 {
-	/*
-	if (type == PNOISE_WEAPON)
-	{
-		if (who->client->silencer_shots)
-		{
-			who->client->silencer_shots--;
-			return;
-		}
-	}
-	*/
-}
+    edict_t     *noise;
 
+    /*if (type == PNOISE_WEAPON) {
+        if (who->client->silencer_shots) {
+            who->client->silencer_shots--;
+            return;
+        }
+    }*/
+
+    if (deathmatch->value)
+        return;
+
+    if (who->flags & FL_NOTARGET)
+        return;
+
+    if (!who->mynoise) {
+        noise = G_Spawn();
+        noise->classname = "player_noise";
+        VectorSet(noise->mins, -8, -8, -8);
+        VectorSet(noise->maxs, 8, 8, 8);
+        noise->owner = who;
+        noise->svflags = SVF_NOCLIENT;
+        who->mynoise = noise;
+
+        noise = G_Spawn();
+        noise->classname = "player_noise";
+        VectorSet(noise->mins, -8, -8, -8);
+        VectorSet(noise->maxs, 8, 8, 8);
+        noise->owner = who;
+        noise->svflags = SVF_NOCLIENT;
+        who->mynoise2 = noise;
+    }
+
+    if (type == PNOISE_SELF || type == PNOISE_WEAPON) {
+        noise = who->mynoise;
+        level.sound_entity = noise;
+        level.sound_entity_framenum = level.framenum;
+    } else { // type == PNOISE_IMPACT
+        noise = who->mynoise2;
+        level.sound2_entity = noise;
+        level.sound2_entity_framenum = level.framenum;
+    }
+
+    VectorCopy(where, noise->s.origin);
+    VectorSubtract(where, noise->maxs, noise->absmin);
+    VectorAdd(where, noise->maxs, noise->absmax);
+    noise->last_sound_framenum = level.framenum;
+    gi.linkentity(noise);
+}
+// SPAQ
 
 void PlaceHolder(edict_t* ent)
 {
@@ -396,7 +433,9 @@ qboolean Pickup_Weapon(edict_t* ent, edict_t* other)
 		return false;
 
 	case GRENADE_NUM:
-		if (!(gameSettings & GS_DEATHMATCH) && ctf->value != 2 && !band)
+		// SPAQ
+		if (!(gameSettings & GS_DEATHMATCH) && deathmatch->value && ctf->value != 2 && !band)
+		// SPAQ
 			return false;
 
 		if (other->client->inventory[index] >= other->client->grenade_max)
@@ -441,7 +480,9 @@ qboolean Pickup_Weapon(edict_t* ent, edict_t* other)
 	{
 		if (DMFLAGS(DF_WEAPON_RESPAWN) && ((gameSettings & GS_DEATHMATCH) || ctf->value == 2))
 			SetRespawn(ent, weapon_respawn->value);
-		else
+		// SPAQ
+		else if (deathmatch->value)
+		// SPAQ
 			SetSpecWeapHolder(ent);
 	}
 
@@ -498,6 +539,9 @@ void ChangeWeapon(edict_t* ent)
 
 	// zucc - prevent reloading queue for previous weapon from doing anything
 	ent->client->reload_attempts = 0;
+	// SPAQ
+	ent->client->quickreloading = false;
+	// SPAQ
 
 	ent->client->lastweapon = ent->client->weapon;
 	ent->client->weapon = ent->client->newweapon;
@@ -1263,6 +1307,7 @@ Weapon_Generic(edict_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 		}
 		else
 		{
+			ent->client->quickreloading = false;
 			ent->client->ps.gunframe = FRAME_IDLE_FIRST;
 			ent->client->weaponstate = WEAPON_READY;
 			switch (ent->client->curr_weap)
@@ -1410,13 +1455,24 @@ Weapon_Generic(edict_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 		{
 			ent->client->latched_buttons &= ~BUTTON_ATTACK;
 			{
-				if (level.framenum >= ent->pain_debounce_framenum)
+				// SPAQ
+				if (quickreload->value)
+				{
+					ent->client->quickreloading = true;
+
+					Cmd_Reload_f(ent);
+
+					if (ent->client->weaponstate != WEAPON_RELOADING)
+						ent->client->quickreloading = false;
+				}
+
+				// SPAQ
+				if (ent->client->weaponstate != WEAPON_RELOADING && level.framenum >= ent->pain_debounce_framenum)
+				// SPAQ
 				{
 					gi.sound(ent, CHAN_VOICE, level.snd_noammo, 1, ATTN_NORM, 0);
 					ent->pain_debounce_framenum = level.framenum + 1 * HZ;
 				}
-
-
 			}
 
 		}
@@ -1866,7 +1922,20 @@ Weapon_Generic(edict_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 			}
 			else if (bOut)	// out of ammo
 			{
-				if (level.framenum >= ent->pain_debounce_framenum)
+				// SPAQ
+				if (quickreload->value)
+				{
+					ent->client->quickreloading = true;
+
+					Cmd_Reload_f(ent);
+
+					if (ent->client->weaponstate != WEAPON_RELOADING)
+						ent->client->quickreloading = false;
+				}
+
+				// SPAQ
+				if (ent->client->weaponstate != WEAPON_RELOADING && level.framenum >= ent->pain_debounce_framenum)
+				// SPAQ
 				{
 					gi.sound(ent, CHAN_VOICE, level.snd_noammo, 1, ATTN_NORM, 0);
 					ent->pain_debounce_framenum = level.framenum + 1 * HZ;

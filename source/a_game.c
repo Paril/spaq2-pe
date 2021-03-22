@@ -155,9 +155,15 @@ void ReadConfigFile()
 					Q_strncpyz(teams[TEAM3].skin, buf, sizeof(teams[TEAM3].skin));
 				}
 			} else if (!strcmp(reading_section, "maplist")) {
-				map_rotation[num_maps] = (char *) gi.TagMalloc(strlen(buf) + 1, TAG_GAME);
-				strcpy(map_rotation[num_maps], buf);
-				num_maps++;
+				// SPAQ
+				if (deathmatch->value) {
+				// SPAQ
+					map_rotation[num_maps] = (char *) gi.TagMalloc(strlen(buf) + 1, TAG_GAME);
+					strcpy(map_rotation[num_maps], buf);
+					num_maps++;
+				// SPAQ
+				}
+				// SPAQ
 			}
 			lines_into_section++;
 		}
@@ -241,7 +247,13 @@ void PrintMOTD(edict_t * ent)
 		 */
 
 		// Check what game type it is
-		if (teamplay->value)
+		// SPAQ
+		if (coop->value)
+			sprintf(msg_buf + strlen(msg_buf), "Game Type: Co-op AQ\n");
+		else if (!deathmatch->value)
+			sprintf(msg_buf + strlen(msg_buf), "Game Type: SPAQ\n");
+		// SPAQ
+		else if (teamplay->value)
 		{
 			if (ctf->value) // Is it CTF?
 				server_type = "Capture the Flag";
@@ -361,16 +373,23 @@ void PrintMOTD(edict_t * ent)
 		/*
 		   Now for the map rules, such as Timelimit, Roundlimit, etc
 		 */
-		if ((int)fraglimit->value) // What is the fraglimit?
-			sprintf(msg_buf + strlen(msg_buf), "Fraglimit: %d", (int) fraglimit->value);
-		else
-			strcat(msg_buf, "Fraglimit: none");
+		// SPAQ
+		if (deathmatch->value)
+		{
+		// SPAQ
+			if ((int)fraglimit->value) // What is the fraglimit?
+				sprintf(msg_buf + strlen(msg_buf), "Fraglimit: %d", (int) fraglimit->value);
+			else
+				strcat(msg_buf, "Fraglimit: none");
 
-		if ((int) timelimit->value) // What is the timelimit?
-			sprintf(msg_buf + strlen(msg_buf), "  Timelimit: %d\n", (int) timelimit->value);
-		else
-			strcat(msg_buf, "  Timelimit: none\n");
-		lines++;
+			if ((int) timelimit->value) // What is the timelimit?
+				sprintf(msg_buf + strlen(msg_buf), "  Timelimit: %d\n", (int) timelimit->value);
+			else
+				strcat(msg_buf, "  Timelimit: none\n");
+			lines++;
+		// SPAQ
+		}
+		// SPAQ
 
 		// If we're in Teamplay, and not CTF, we want to see what the roundlimit and roundtimelimit is
 		if (gameSettings & GS_ROUNDBASED)
@@ -446,7 +465,9 @@ void PrintMOTD(edict_t * ent)
 		/*
 		 *  Are the dmflags set to disallow Friendly Fire?
 		 */
-		if (teamplay->value && !DMFLAGS(DF_NO_FRIENDLY_FIRE)) {
+		// SPAQ
+		if ((teamplay->value || coop->value) && !DMFLAGS(DF_NO_FRIENDLY_FIRE)) {
+		// SPAQ
 			sprintf(msg_buf + strlen(msg_buf), "Friendly Fire Enabled\n");
 			lines++;
 		}
@@ -629,12 +650,17 @@ void PlaceHolder( edict_t * ent );  // p_weapon.c
 
 void ShellTouch(edict_t * self, edict_t * other, cplane_t * plane, csurface_t * surf)
 {
-	if (self->owner->client->curr_weap == M3_NUM)
+	// SPAQ
+	if (!self->velocity[2])
+		return;
+
+	if (self->typeNum == M3_NUM)
 		gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/shellhit1.wav"), 1, ATTN_STATIC, 0);
 	else if (random() < 0.5)
-		gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/tink1.wav"), 0.2, ATTN_STATIC, 0);
+		gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/tink1.wav"), 1, ATTN_STATIC, 0);
 	else
-		gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/tink2.wav"), 0.2, ATTN_STATIC, 0);
+		gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/tink2.wav"), 1, ATTN_STATIC, 0);
+	// SPAQ
 }
 
 void ShellDie(edict_t * self)
@@ -884,6 +910,10 @@ void EjectShell(edict_t * self, vec3_t start, int toggle)
 	shell->classname = "shell";
 	shell->freetime = level.time;  // Used to determine oldest spawned shell.
 
+	// SPAQ
+	shell->typeNum = self->client->curr_weap;
+	// SPAQ
+
 	gi.linkentity(shell);
 }
 
@@ -1024,7 +1054,9 @@ void AddDecal(edict_t * self, trace_t * tr)
 	decal->classname = "decal";
 	decal->classnum = decals;
 
-	if ((tr->ent) && (0 == Q_stricmp("func_explosive", tr->ent->classname))) {
+	// SPAQ
+	if (CGF_SFX_IsBreakableGlassEnabled() && (tr->ent) && (0 == Q_stricmp("func_explosive", tr->ent->classname))) {
+	// SPAQ
 		CGF_SFX_AttachDecalToGlass(tr->ent, decal);
 	}
 	else if( attached )
@@ -1084,7 +1116,9 @@ void AddSplat(edict_t * self, vec3_t point, trace_t * tr)
 	splat->classname = "splat";
 	splat->classnum = splats;
 
-	if ((tr->ent) && (0 == Q_stricmp("func_explosive", tr->ent->classname))) {
+	// SPAQ
+	if (CGF_SFX_IsBreakableGlassEnabled() && (tr->ent) && (0 == Q_stricmp("func_explosive", tr->ent->classname))) {
+	// SPAQ
 		CGF_SFX_AttachDecalToGlass(tr->ent, splat);
 	}
 	else if( attached )

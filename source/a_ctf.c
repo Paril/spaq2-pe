@@ -1361,8 +1361,10 @@ void CTFCapReward(edict_t * ent)
 	ent->client->leg_noise = 0;
 	ent->client->leg_damage = 0;
 	ent->client->leghits = 0;
-	ent->client->bleeding = 0;
-	ent->client->bleed_remain = 0;
+	// SPAQ
+	ent->bleeding = 0;
+	ent->bleed_remain = 0;
+	// SPAQ
 	ent->client->bandaging = 0;
 	ent->client->leg_dam_count = 0;
 	ent->client->attacker = NULL;

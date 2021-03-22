@@ -668,6 +668,29 @@ void Use_Silencer (edict_t * ent, gitem_t * item)
 
 //======================================================================
 
+// SPAQ
+qboolean Pickup_Key(edict_t *ent, edict_t *other)
+{
+    if (coop->value) {
+        if (strcmp(ent->classname, "key_power_cube") == 0) {
+            if (other->client->pers.power_cubes & ((ent->spawnflags & 0x0000ff00) >> 8))
+                return false;
+            other->client->inventory[ITEM_INDEX(ent->item)]++;
+            other->client->pers.power_cubes |= ((ent->spawnflags & 0x0000ff00) >> 8);
+        } else {
+            if (other->client->inventory[ITEM_INDEX(ent->item)])
+                return false;
+            other->client->inventory[ITEM_INDEX(ent->item)] = 1;
+        }
+        return true;
+    }
+    other->client->inventory[ITEM_INDEX(ent->item)]++;
+    return true;
+}
+// SPAQ
+
+//======================================================================
+
 qboolean Add_Ammo (edict_t * ent, gitem_t * item, int count)
 {
 	int index;
@@ -866,7 +889,7 @@ void Touch_Item (edict_t * ent, edict_t * other, cplane_t * plane,
 	if (!taken)
 		return;
 
-	if (ent->spawnflags & (DROPPED_ITEM | DROPPED_PLAYER_ITEM))
+	if ((!coop->value && (ent->item->flags & IT_STAY_COOP)) || (ent->spawnflags & (DROPPED_ITEM | DROPPED_PLAYER_ITEM)))
 	{
 		if (ent->flags & FL_RESPAWN)
 			ent->flags &= ~FL_RESPAWN;
@@ -1156,6 +1179,11 @@ void PrecacheItems( void )
 
 	for (i = 1; i<AMMO_FIRST; i++) {
 
+		// SPAQ
+		if (GET_ITEM(i)->flags & (IT_KEY | IT_POWERUP))
+			continue;
+		// SPAQ
+
 		PrecacheItem( GET_ITEM(i) );
 
 	}
@@ -1217,33 +1245,46 @@ void SpawnItem (edict_t * ent, gitem_t * item)
 	}
 
 	// some items will be prevented in deathmatch
-	if (DMFLAGS(DF_NO_ITEMS))
-	{
-		if (item->pickup == Pickup_Powerup)
+	// SPAQ
+    if (deathmatch->value) {
+	// SPAQ
+		if (DMFLAGS(DF_NO_ITEMS))
 		{
-			G_FreeEdict (ent);
-			return;
+			if (item->pickup == Pickup_Powerup)
+			{
+				G_FreeEdict (ent);
+				return;
+			}
 		}
-	}
-	// zucc remove health from the game
-	if (1 /*DMFLAGS(DF_NO_HEALTH) */ )
-	{
-		if (item->pickup == Pickup_Health
-		|| item->pickup == Pickup_Adrenaline
-		|| item->pickup == Pickup_AncientHead)
+		// zucc remove health from the game
+		if (1 /*DMFLAGS(DF_NO_HEALTH) */ )
 		{
-			G_FreeEdict (ent);
-			return;
+			if (item->pickup == Pickup_Health
+			|| item->pickup == Pickup_Adrenaline
+			|| item->pickup == Pickup_AncientHead)
+			{
+				G_FreeEdict (ent);
+				return;
+			}
 		}
-	}
-	if (DMFLAGS(DF_INFINITE_AMMO))
-	{
-		if (item->flags == IT_AMMO)
+		if (DMFLAGS(DF_INFINITE_AMMO))
 		{
-			G_FreeEdict (ent);
-			return;
+			if (item->flags == IT_AMMO)
+			{
+				G_FreeEdict (ent);
+				return;
+			}
 		}
+	// SPAQ
 	}
+	// SPAQ
+
+	// SPAQ
+    if (coop->value && (strcmp(ent->classname, "key_power_cube") == 0)) {
+        ent->spawnflags |= (1 << (8 + level.power_cubes));
+        level.power_cubes++;
+    }
+	// SPAQ
 
 	ent->item = item;
 	ent->nextthink = level.framenum + 2;	// items start after other solids
@@ -2079,6 +2120,227 @@ gives +1 to maximum health
    }
   ,
 
+	// SPAQ
+    //
+    // KEYS
+    //
+    /*QUAKED key_data_cd (0 .5 .8) (-16 -16 -16) (16 16 16)
+    key for computer centers
+    */
+    {
+        "key_data_cd",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/data_cd/tris.md2", EF_ROTATE,
+        NULL,
+        "k_datacd",
+        "Data CD",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_power_cube (0 .5 .8) (-16 -16 -16) (16 16 16) TRIGGER_SPAWN NO_TOUCH
+    warehouse circuits
+    */
+    {
+        "key_power_cube",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/power/tris.md2", EF_ROTATE,
+        NULL,
+        "k_powercube",
+        "Power Cube",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_pyramid (0 .5 .8) (-16 -16 -16) (16 16 16)
+    key for the entrance of jail3
+    */
+    {
+        "key_pyramid",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/pyramid/tris.md2", EF_ROTATE,
+        NULL,
+        "k_pyramid",
+        "Pyramid Key",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_data_spinner (0 .5 .8) (-16 -16 -16) (16 16 16)
+    key for the city computer
+    */
+    {
+        "key_data_spinner",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/spinner/tris.md2", EF_ROTATE,
+        NULL,
+        "k_dataspin",
+        "Data Spinner",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_pass (0 .5 .8) (-16 -16 -16) (16 16 16)
+    security pass for the security level
+    */
+    {
+        "key_pass",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/pass/tris.md2", EF_ROTATE,
+        NULL,
+        "k_security",
+        "Security Pass",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_blue_key (0 .5 .8) (-16 -16 -16) (16 16 16)
+    normal door key - blue
+    */
+    {
+        "key_blue_key",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/key/tris.md2", EF_ROTATE,
+        NULL,
+        "k_bluekey",
+        "Blue Key",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_red_key (0 .5 .8) (-16 -16 -16) (16 16 16)
+    normal door key - red
+    */
+    {
+        "key_red_key",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/red_key/tris.md2", EF_ROTATE,
+        NULL,
+        "k_redkey",
+        "Red Key",
+        2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_commander_head (0 .5 .8) (-16 -16 -16) (16 16 16)
+    tank commander's head
+    */
+    {
+        "key_commander_head",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/monsters/commandr/head/tris.md2", EF_GIB,
+        NULL,
+        /* icon */      "k_comhead",
+        /* pickup */    "Commander's Head",
+        /* width */     2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+
+    /*QUAKED key_airstrike_target (0 .5 .8) (-16 -16 -16) (16 16 16)
+    tank commander's head
+    */
+    {
+        "key_airstrike_target",
+        Pickup_Key,
+        NULL,
+        Drop_General,
+        NULL,
+        "items/pkup.wav",
+        "models/items/keys/target/tris.md2", EF_ROTATE,
+        NULL,
+        /* icon */      "i_airstrike",
+        /* pickup */    "Airstrike Marker",
+        /* width */     2,
+        0,
+        NULL,
+        IT_STAY_COOP | IT_KEY,
+        NULL,
+        0,
+        /* precache */ "",
+        0
+    },
+	// SPAQ
+
   // end of list marker
   {NULL}
 };
@@ -2088,7 +2350,9 @@ gives +1 to maximum health
 */
 void SP_item_health (edict_t * self)
 {
-	if (1)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
+	if (deathmatch->value)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
 	{
 		G_FreeEdict(self);
 		return;
@@ -2104,7 +2368,9 @@ void SP_item_health (edict_t * self)
 */
 void SP_item_health_small (edict_t * self)
 {
-	if (1)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
+	if (deathmatch->value)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
 	{
 		G_FreeEdict(self);
 		return;
@@ -2121,7 +2387,9 @@ void SP_item_health_small (edict_t * self)
 */
 void SP_item_health_large (edict_t * self)
 {
-	if (1)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
+	if (deathmatch->value)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
 	{
 		G_FreeEdict(self);
 		return;
@@ -2137,7 +2405,9 @@ void SP_item_health_large (edict_t * self)
 */
 void SP_item_health_mega (edict_t * self)
 {
-	if (1)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
+	if (deathmatch->value)	//DMFLAGS(DF_NO_HEALTH) )
+	// SPAQ
 	{
 		G_FreeEdict(self);
 		return;

@@ -337,6 +337,11 @@ cvar_t *use_warnings;
 cvar_t *use_mapvote;
 cvar_t *use_scramblevote;
 cvar_t *deathmatch;
+// SPAQ
+cvar_t *coop;
+cvar_t *skill;
+cvar_t *quickreload;
+// SPAQ
 cvar_t *dmflags;
 cvar_t *fraglimit;
 cvar_t *timelimit;
@@ -455,8 +460,6 @@ cvar_t *use_classic;		// Used to reset spread/gren strength to 1.52
 cvar_t *warmup;
 cvar_t *round_begin;
 cvar_t *spectator_hud;
-
-cvar_t *jump;			// jumping mod
 
 void SpawnEntities (char *mapname, char *entities, char *spawnpoint);
 void ClientThink (edict_t * ent, usercmd_t * cmd);
@@ -607,7 +610,9 @@ void ClientEndServerFrames (void)
 
 		ClientEndServerFrame(ent);
 
-		if (updateLayout && ent->client->layout) {
+		// SPAQ
+		if (updateLayout && ent->client->layout && ent->client->layout != LAYOUT_HELP) {
+		// SPAQ
 			if (ent->client->layout == LAYOUT_MENU)
 				PMenu_Update(ent);
 			else
@@ -1027,6 +1032,11 @@ void G_RunFrame (void)
 		ExitLevel ();
 		return;
 	}
+
+	// SPAQ
+	if (!deathmatch->value)
+	    AI_SetSightClient();
+	// SPAQ
 
 	// TNG Darkmatch Cycle
 	if(!level.pauseFrames)

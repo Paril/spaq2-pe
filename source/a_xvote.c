@@ -152,6 +152,11 @@ void vShowMenu(edict_t *ent, char *menu)
 	int i;
 	char fixedmenu[128];
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
 
 	Q_strncpyz(fixedmenu, menu, sizeof(fixedmenu));
 
@@ -186,6 +191,11 @@ void vInitGame(void)
 	vote_t *xvote;
 	ini_t ini;
 
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
+
 	ini.pfile = NULL;
 
 	if (OpenIniFile(IniPath(), &ini) == false)
@@ -206,6 +216,12 @@ void vExitGame(void)
 	int i;
 	vote_t *xvote;
 
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
+
+
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{
 		if (xvote->ExitGame)
@@ -217,6 +233,11 @@ void vInitLevel(void)
 {
 	int i;
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
 
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{
@@ -229,6 +250,11 @@ void vExitLevel(char *NextMap)
 {
 	int i;
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
 
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{
@@ -241,6 +267,11 @@ void vInitClient(edict_t *ent)
 {
 	int i;
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
 
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{
@@ -253,6 +284,11 @@ void vClientDisconnect(edict_t *ent)
 {
 	int i;
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
 
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{
@@ -265,6 +301,11 @@ void vNewRound(void)
 {
 	int i;
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return;
+	// SPAQ
 
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{
@@ -277,6 +318,11 @@ qboolean vCheckVote(void)
 {
 	int i;
 	vote_t *xvote;
+	
+	// SPAQ
+	if (!deathmatch->value)
+		return false;
+	// SPAQ
 
 	for (i = 0, xvote = xvotelist; i < xvlistsize; i++, xvote++)
 	{

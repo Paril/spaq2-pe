@@ -368,6 +368,11 @@ qboolean OnSameTeam (edict_t * ent1, edict_t * ent2)
 		return ent1->client->resp.team == ent2->client->resp.team;
 	//FIREBLADE
 
+	// SPAQ
+	if (coop->value)
+		return true;
+	// SPAQ
+
 	if (!DMFLAGS( (DF_MODELTEAMS | DF_SKINTEAMS) ))
 		return false;
 

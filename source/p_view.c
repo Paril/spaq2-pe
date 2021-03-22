@@ -660,7 +660,14 @@ void P_FallingDamage (edict_t * ent)
 
 		// zucc look for slippers to avoid noise
 		if(!INV_AMMO(ent, SLIP_NUM))
+		// SPAQ
+		{
+		// SPAQ
 			ent->s.event = EV_FOOTSTEP;
+		// SPAQ
+			PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
+		}
+		// SPAQ
 
 		return;
 	}
@@ -988,7 +995,14 @@ void G_SetClientEvent (edict_t * ent)
 	{
 		//zucc added item check to see if they have slippers
 		if ((int)(current_client->bobtime + bobmove) != bobcycle && !INV_AMMO(ent, SLIP_NUM))
+		// SPAQ
+		{
+		// SPAQ
 			ent->s.event = EV_FOOTSTEP;
+		// SPAQ
+			PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
+		}
+		// SPAQ
 	}
 }
 
@@ -999,6 +1013,19 @@ G_SetClientSound
 */
 void G_SetClientSound (edict_t * ent)
 {
+	// SPAQ
+    if (ent->client->pers.game_helpchanged != game.helpchanged) {
+        ent->client->pers.game_helpchanged = game.helpchanged;
+        ent->client->pers.helpchanged = 1;
+    }
+
+    // help beep (no more than three times)
+    if (ent->client->pers.helpchanged && ent->client->pers.helpchanged <= 3 && !((level.framenum / FRAMEDIV) & 63)) {
+        ent->client->pers.helpchanged++;
+        gi.sound(ent, CHAN_VOICE, gi.soundindex("misc/pc_up.wav"), 1, ATTN_STATIC, 0);
+    }
+	// SPAQ
+
 	if (ent->waterlevel && (ent->watertype & (CONTENTS_LAVA | CONTENTS_SLIME)))
 		ent->s.sound = level.snd_fry;
 	else
@@ -1141,43 +1168,91 @@ void Do_Bleeding (edict_t * ent)
 
 	if (!FRAMESYNC)
 		return;
-
-	if (!(ent->client->bleeding) || (ent->health <= 0))
+	
+	// SPAQ
+	if (!(ent->bleeding) || (ent->health <= 0))
+	// SPAQ
 		return;
 
-	temp = (int) (ent->client->bleeding * .2);
-	ent->client->bleeding -= temp;
+	// SPAQ
+	if (ent->svflags & SVF_MONSTER)
+	{
+		if (ent->bandage_time && --ent->bandage_time == 0)
+		{
+			ent->bleeding = ent->bleed_remain = ent->bandage_time = 0;
+			return;
+		}
+	}
+	// SPAQ
+
+	// SPAQ
+	temp = (int) (ent->bleeding * (((ent->svflags & SVF_MONSTER) && MONSTER_IS_CHAMP(ent, CHAMPION_SLOW_BLEED)) ? 0.1 : 0.2));
+	ent->bleeding -= temp;
+	// SPAQ
 	if (temp <= 0)
 		temp = 1;
-	ent->client->bleed_remain += temp;
-	damage = (int) (ent->client->bleed_remain / BLEED_TIME);
-	if (ent->client->bleed_remain >= BLEED_TIME)
+	// SPAQ
+	ent->bleed_remain += temp;
+	damage = (int) (ent->bleed_remain / BLEED_TIME);
+	if (ent->bleed_remain >= BLEED_TIME)
+	// SPAQ
 	{
+		// SPAQ
+		if (!ent->client)
+		{
+			damage *= 0.55;
+
+			if (damage <= 1)
+			{
+				// start "bandaging" if we haven't yet
+				if (!ent->bandage_time)
+					ent->bandage_time = MONSTER_IS_CHAMP(ent, CHAMPION_SLOW_BLEED) ? (BANDAGE_TIME / 2) : BANDAGE_TIME;
+				return;
+			}
+		}
+		// SPAQ
 		ent->health -= damage;
 		if (damage > 1)
 		{
+			// SPAQ
+			if (ent->svflags & SVF_MONSTER)
+				ent->pain(ent, ent, 0, damage);
+			// SPAQ
 			// action doens't do this
 			//ent->client->damage_blood += damage; // for feedback                                
 		}
 		if (ent->health <= 0)
 		{
-			meansOfDeath = ent->client->attacker_mod;
-			locOfDeath = ent->client->attacker_loc;
-			Killed(ent, ent->client->attacker, ent->client->attacker, damage, ent->s.origin);
+			// SPAQ
+			if (ent->client)
+			{
+			// SPAQ
+				meansOfDeath = ent->client->attacker_mod;
+				locOfDeath = ent->client->attacker_loc;
+				Killed(ent, ent->client->attacker, ent->client->attacker, damage, ent->s.origin);
+			// SPAQ
+			}
+			else
+				Killed(ent, ent, ent, damage, ent->s.origin);
+			// SPAQ
 		}
 		else
 		{
-			ent->client->bleed_remain %= BLEED_TIME;
+			// SPAQ
+			ent->bleed_remain %= BLEED_TIME;
+			// SPAQ
 		}
-		if (ent->client->bleeddelay <= level.framenum)
+		if (ent->bleeddelay <= level.framenum)
 		{
-			ent->client->bleeddelay = level.framenum + 2 * HZ;  // 2 seconds
+			ent->bleeddelay = level.framenum + 2 * HZ;  // 2 seconds
 			
 			vec3_t fwd, right, up, pos, vel;
 			AngleVectors( ent->s.angles, fwd, right, up );
-			vel[0] = fwd[0] * ent->client->bleedloc_offset[0] + right[0] * ent->client->bleedloc_offset[1] + up[0] * ent->client->bleedloc_offset[2];
-			vel[1] = fwd[1] * ent->client->bleedloc_offset[0] + right[1] * ent->client->bleedloc_offset[1] + up[1] * ent->client->bleedloc_offset[2];
-			vel[2] = fwd[2] * ent->client->bleedloc_offset[0] + right[2] * ent->client->bleedloc_offset[1] + up[2] * ent->client->bleedloc_offset[2];
+			// SPAQ
+			vel[0] = fwd[0] * ent->bleedloc_offset[0] + right[0] * ent->bleedloc_offset[1] + up[0] * ent->bleedloc_offset[2];
+			vel[1] = fwd[1] * ent->bleedloc_offset[0] + right[1] * ent->bleedloc_offset[1] + up[1] * ent->bleedloc_offset[2];
+			vel[2] = fwd[2] * ent->bleedloc_offset[0] + right[2] * ent->bleedloc_offset[1] + up[2] * ent->bleedloc_offset[2];
+			// SPAQ
 			VectorAdd( ent->s.origin, vel, pos );
 			if( vel[2] < 0. )
 				vel[2] = 0;
@@ -1419,56 +1494,6 @@ void ClientEndServerFrame (edict_t * ent)
 
 	G_SetStats (ent);
 
-/*
-	// FIXME: Remove this section?
-	//FIREBLADE
-	for (i = 1; i <= maxclients->value; i++)
-	{
-		int stats_copy;
-		edict_t *e = g_edicts + i;
-
-		if (!ent->inuse || e->client->chase_mode == 0 || e->client->chase_target != ent)
-			continue;
-
-		for (stats_copy = 0; stats_copy < MAX_STATS; stats_copy++)
-		{
-			if (stats_copy == STAT_FLAG_PIC)
-			{
-				if (e->client->chase_mode != 2)
-					continue;	// only show team/flag icon when in chase mode 2
-			}
-			else if (stats_copy >= STAT_TEAM_HEADER && stats_copy <= STAT_TEAM2_SCORE)
-				continue;		// protect these
-			if (stats_copy >= STAT_TEAM3_PIC && stats_copy <= STAT_TEAM3_SCORE)
-				continue;		// protect these
-			if (stats_copy == STAT_LAYOUTS || stats_copy == STAT_ID_VIEW)
-				continue;		// protect these
-			if (stats_copy == STAT_SNIPER_ICON && e->client->chase_mode != 2)
-				continue;		// only show sniper lens when in chase mode 2
-			if (stats_copy == STAT_FRAGS)
-				continue;
-			e->client->ps.stats[stats_copy] = ent->client->ps.stats[stats_copy];
-		}
-
-		//
-		// help icon / bandaging icon / current weapon if not shown
-		//
-		if (e->client->resp.helpchanged && (level.framenum & 8))
-			e->client->ps.stats[STAT_HELPICON] = gi.imageindex ("i_help");
-		// TNG: Show health icon when bandaging (thanks to Dome for this code)
-		else if (ent->client->weaponstate == WEAPON_BANDAGING || ent->client->bandaging || ent->client->bandage_stopped)
-			e->client->ps.stats[STAT_HELPICON] = gi.imageindex ("i_health");
-		else if ((e->client->pers.hand == CENTER_HANDED || e->client->ps.fov > 91) && ent->client->pers.weapon && e->client->chase_mode == 2)
-			e->client->ps.stats[STAT_HELPICON] = gi.imageindex (ent->client->pers.weapon->icon);
-		else
-			e->client->ps.stats[STAT_HELPICON] = 0;
-
-	//FB                e->client->ps.stats[STAT_LAYOUTS] = 1;
-	//FB                break;
-	}
-	//FIREBLADE
-*/
-
 	G_SetClientEvent (ent);
 
 	G_SetClientEffects (ent);
@@ -1491,7 +1516,9 @@ void ClientEndServerFrame (edict_t * ent)
 
 	qboolean weapon_framesync = (level.framenum % game.framediv == ent->client->weapon_last_activity % game.framediv);
 
-	if (ent->client->reload_attempts > 0)
+	// SPAQ
+	if (ent->client->reload_attempts > 0 || ent->client->quickreloading)
+	// SPAQ
 	{
 		if( ((ent->client->latched_buttons | ent->client->buttons) & BUTTON_ATTACK) && canFire(ent) )
 			ent->client->reload_attempts = 0;
@@ -1508,14 +1535,6 @@ void ClientEndServerFrame (edict_t * ent)
 
 	if (ent->client->push_timeout > 0)
 		ent->client->push_timeout--;
-	/*
-	else
-	{
-		// Really old code that would prevent kill credits from long-term bleedout.
-		ent->client->attacker = NULL;
-		ent->client->attacker_mod = MOD_BLEEDING;
-	}
-	*/
 
 	RadioThink(ent);
 }

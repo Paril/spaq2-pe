@@ -1329,7 +1329,10 @@ void CleanLevel ()
 	
 	CleanBodies();
 	// fix glass
-	CGF_SFX_RebuildAllBrokenGlass ();
+	// SPAQ
+	if (CGF_SFX_IsBreakableGlassEnabled())
+	// SPAQ
+		CGF_SFX_RebuildAllBrokenGlass ();
 }
 
 void MakeAllLivePlayersObservers(void);

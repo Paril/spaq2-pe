@@ -208,14 +208,36 @@ void Killed (edict_t * targ, edict_t * inflictor, edict_t * attacker, int damage
 	if (targ->health < -999)
 		targ->health = -999;
 
-	if (targ->client)
+	// SPAQ
+	//if (targ->client)
+	// SPAQ
 	{
-		targ->client->bleeding = 0;
+		// SPAQ
+		targ->bleeding = 0;
 		//targ->client->bleedcount = 0;
-		targ->client->bleed_remain = 0;
+		targ->bleed_remain = 0;
+		// SPAQ
 	}
 
 	targ->enemy = attacker;
+
+	// SPAQ
+	if ((targ->svflags & SVF_MONSTER) && (targ->deadflag != DEAD_DEAD))
+	{
+		// SPAQ
+		targ->svflags |= SVF_DEADMONSTER;	// now treat as a different content type
+		// SPAQ
+		if (!(targ->monsterinfo.aiflags & AI_GOOD_GUY))
+		{
+			level.killed_monsters++;
+			if (coop->value && attacker->client)
+				attacker->client->resp.score++;
+			// medics won't heal monsters that they kill themselves
+			if (strcmp(attacker->classname, "monster_medic") == 0)
+				targ->owner = attacker;
+		}
+	}
+	// SPAQ
 
 	if (targ->movetype == MOVETYPE_PUSH || targ->movetype == MOVETYPE_STOP
 	|| targ->movetype == MOVETYPE_NONE)
@@ -224,9 +246,16 @@ void Killed (edict_t * targ, edict_t * inflictor, edict_t * attacker, int damage
 		return;
 	}
 
+	// SPAQ
+	if ((targ->svflags & SVF_MONSTER) && (targ->deadflag != DEAD_DEAD))
+	{
+		targ->touch = NULL;
+		monster_death_use (targ);
+	}
+	// SPAQ
+
 	targ->die (targ, inflictor, attacker, damage, point);
 }
-
 
 /*
   ================
@@ -413,6 +442,76 @@ void VerifyHeadShot(vec3_t point, vec3_t dir, float height, vec3_t newpoint)
 
 #define HEAD_HEIGHT 12.0f
 
+// SPAQ
+void M_ReactToDamage(edict_t *targ, edict_t *attacker)
+{
+    if (!(attacker->client) && !(attacker->svflags & SVF_MONSTER))
+        return;
+
+    if (attacker == targ || attacker == targ->enemy)
+        return;
+
+    // if we are a good guy monster and our attacker is a player
+    // or another good guy, do not get mad at them
+    if (targ->monsterinfo.aiflags & AI_GOOD_GUY) {
+        if (attacker->client || (attacker->monsterinfo.aiflags & AI_GOOD_GUY))
+            return;
+    }
+
+    // we now know that we are not both good guys
+
+    // if attacker is a client, get mad at them because he's good and we're not
+    if (attacker->client) {
+        targ->monsterinfo.aiflags &= ~AI_SOUND_TARGET;
+
+        // this can only happen in coop (both new and old enemies are clients)
+        // only switch if can't see the current enemy
+        if (targ->enemy && targ->enemy->client) {
+            if (visible(targ, targ->enemy, MASK_OPAQUE)) {
+                targ->oldenemy = attacker;
+                return;
+            }
+            targ->oldenemy = targ->enemy;
+        }
+        targ->enemy = attacker;
+        if (!(targ->monsterinfo.aiflags & AI_DUCKED))
+            FoundTarget(targ);
+        return;
+    }
+
+    // it's the same base (walk/swim/fly) type and a different classname and it's not a tank
+    // (they spray too much), get mad at them
+    if (((targ->flags & (FL_FLY | FL_SWIM)) == (attacker->flags & (FL_FLY | FL_SWIM))) &&
+        (strcmp(targ->classname, attacker->classname) != 0) &&
+        (strcmp(attacker->classname, "monster_tank") != 0) &&
+        (strcmp(attacker->classname, "monster_supertank") != 0) &&
+        (strcmp(attacker->classname, "monster_makron") != 0) &&
+        (strcmp(attacker->classname, "monster_jorg") != 0)) {
+        if (targ->enemy && targ->enemy->client)
+            targ->oldenemy = targ->enemy;
+        targ->enemy = attacker;
+        if (!(targ->monsterinfo.aiflags & AI_DUCKED))
+            FoundTarget(targ);
+    }
+    // if they *meant* to shoot us, then shoot back
+    else if (attacker->enemy == targ) {
+        if (targ->enemy && targ->enemy->client)
+            targ->oldenemy = targ->enemy;
+        targ->enemy = attacker;
+        if (!(targ->monsterinfo.aiflags & AI_DUCKED))
+            FoundTarget(targ);
+    }
+    // otherwise get mad at whoever they are mad at (help our buddy) unless it is us!
+    else if (attacker->enemy && attacker->enemy != targ) {
+        if (targ->enemy && targ->enemy->client)
+            targ->oldenemy = targ->enemy;
+        targ->enemy = attacker->enemy;
+        if (!(targ->monsterinfo.aiflags & AI_DUCKED))
+            FoundTarget(targ);
+    }
+}
+// SPAQ
+
 void
 T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 	  vec3_t point, vec3_t normal, int damage, int knockback, int dflags,
@@ -472,14 +571,18 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 	}
 
 	targ_maxs2 = targ->maxs[2];
-	if (targ_maxs2 == 4)
+	// SPAQ
+	if (client && targ_maxs2 == 4)
+	// SPAQ
 		targ_maxs2 = CROUCHING_MAXS2;	//FB 6/1/99
 
 	height = abs (targ->mins[2]) + targ_maxs2;
 
 	// locational damage code
 	// base damage is head shot damage, so all the scaling is downwards
-	if (client)
+	// SPAQ
+	if (targ->client || ((targ->svflags & SVF_MONSTER) && !(targ->monsterinfo.aiflags & AI_NOSTEP)))
+	// SPAQ
 	{
 
 		switch (mod) {
@@ -496,7 +599,7 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		case MOD_M4:
 		case MOD_SNIPER:
 		case MOD_KNIFE:
-		case MOD_KNIFE_THROWN:
+		case MOD_KNIFE_THROWN: {
 
 			z_rel = point[2] - targ->s.origin[2];
 			from_top = targ_maxs2 - z_rel;
@@ -505,16 +608,18 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			bleeding = 1;
 			instant_dam = 0;
 
-			if (from_top < 2 * HEAD_HEIGHT)
+			float head_height = targ->head_height ? targ->head_height : HEAD_HEIGHT;
+
+			if (from_top < 2 * head_height)
 			{
 				vec3_t new_point;
-				VerifyHeadShot(point, dir, HEAD_HEIGHT, new_point);
+				VerifyHeadShot(point, dir, head_height, new_point);
 				VectorSubtract(new_point, targ->s.origin, new_point);
 				//gi.cprintf(attacker, PRINT_HIGH, "z: %d y: %d x: %d\n", (int)(targ_maxs2 - new_point[2]),(int)(new_point[1]) , (int)(new_point[0]) );
 
-				if ((targ_maxs2 - new_point[2]) < HEAD_HEIGHT
-					&& (abs (new_point[1])) < HEAD_HEIGHT * .8
-					&& (abs (new_point[0])) < HEAD_HEIGHT * .8)
+				if ((targ_maxs2 - new_point[2]) < head_height
+					&& (abs (new_point[1])) < head_height * .8
+					&& (abs (new_point[0])) < head_height * .8)
 				{
 					head_success = 1;
 				}
@@ -523,10 +628,19 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			if (head_success)
 			{
 				damage_type = LOC_HDAM;
+				// SPAQ
 				if (mod != MOD_KNIFE && mod != MOD_KNIFE_THROWN) //Knife doesnt care about helmet
-					gotArmor = INV_AMMO( targ, HELM_NUM );
+				{
+					if (client)
+						gotArmor = INV_AMMO( targ, HELM_NUM );
+					else if (targ->svflags & SVF_MONSTER)
+						gotArmor = MONSTER_IS_CHAMP(targ, CHAMPION_HELMET);
+				}
+				// SPAQ
 
-				if (attacker->client)
+				// SPAQ
+				if (client && attacker->client)
+				// SPAQ
 				{
 					strcpy( attacker->client->last_damaged_players, client->pers.netname );
 					Stats_AddHit( attacker, mod, (gotArmor) ? LOC_KVLR_HELMET : LOC_HDAM );
@@ -553,16 +667,25 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				if (!gotArmor)
 				{
 					damage = damage * 1.8 + 1;
-					gi.cprintf(targ, PRINT_HIGH, "Head damage\n");
-					if (attacker->client)
+					// SPAQ
+					if (client)
+					// SPAQ
+						gi.cprintf(targ, PRINT_HIGH, "Head damage\n");
+					// SPAQ
+					if (client && attacker->client)
+					// SPAQ
 						gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the head\n", client->pers.netname);
 
 					if (mod != MOD_KNIFE && mod != MOD_KNIFE_THROWN)
-						gi.sound(targ, CHAN_VOICE, level.snd_headshot, 1, ATTN_NORM, 0);
+						// SPAQ
+						gi.sound(targ, client ? CHAN_VOICE : CHAN_ITEM, level.snd_headshot, 1, ATTN_NORM, 0);
+						// SPAQ
 				}
 				else if (mod == MOD_SNIPER)
 				{
-					if (attacker->client)
+					// SPAQ
+					if (client && attacker->client)
+					// SPAQ
 					{
 						gi.cprintf(attacker, PRINT_HIGH,
 							"%s has a Kevlar Helmet, too bad you have AP rounds...\n",
@@ -576,7 +699,9 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				}
 				else
 				{
-					if (attacker->client)
+					// SPAQ
+					if (client && attacker->client)
+					// SPAQ
 					{
 						gi.cprintf( attacker, PRINT_HIGH, "%s has a Kevlar Helmet - AIM FOR THE BODY!\n",
 							client->pers.netname );
@@ -595,24 +720,42 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			{
 				damage_type = LOC_LDAM;
 				damage = damage * .25;
-				if (attacker->client)
+				
+				// SPAQ
+				if (client && attacker->client)
+				// SPAQ
 				{
 					strcpy( attacker->client->last_damaged_players, client->pers.netname );
 					Stats_AddHit( attacker, mod, LOC_LDAM );
 					gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the legs\n",
 						client->pers.netname);
 				}
+				
+				// SPAQ
+				if (client)
+				{
+				// SPAQ
+					gi.cprintf(targ, PRINT_HIGH, "Leg damage\n");
 
-				gi.cprintf(targ, PRINT_HIGH, "Leg damage\n");
-				targ->client->leg_damage = 1;
-				targ->client->leghits++;
+					targ->client->leg_damage = 1;
+					targ->client->leghits++;
+				// SPAQ
+				}
+				// SPAQ
 			}
 			else if (z_rel < STOMACH_DAMAGE)
 			{
 				damage_type = LOC_SDAM;
 				damage = damage * .4;
-				gi.cprintf(targ, PRINT_HIGH, "Stomach damage\n");
-				if (attacker->client)
+
+				// SPAQ
+				if (client)
+				// SPAQ
+					gi.cprintf(targ, PRINT_HIGH, "Stomach damage\n");
+
+				// SPAQ
+				if (client && attacker->client)
+				// SPAQ
 				{
 					strcpy( attacker->client->last_damaged_players, client->pers.netname );
 					Stats_AddHit(attacker, mod, LOC_SDAM);
@@ -627,10 +770,19 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			else		//(z_rel < CHEST_DAMAGE)
 			{
 				damage_type = LOC_CDAM;
+				// SPAQ
 				if (mod != MOD_KNIFE && mod != MOD_KNIFE_THROWN) //Knife doesnt care about kevlar
-					gotArmor = INV_AMMO( targ, KEV_NUM );
+				{
+					if (client)
+						gotArmor = INV_AMMO( targ, KEV_NUM );
+					else if (targ->svflags & SVF_MONSTER)
+						gotArmor = MONSTER_IS_CHAMP(targ, CHAMPION_VEST);
+				}
+				// SPAQ
 
-				if (attacker->client) {
+				// SPAQ
+				if (client && attacker->client) {
+				// SPAQ
 					strcpy( attacker->client->last_damaged_players, client->pers.netname );
 					Stats_AddHit(attacker, mod, (gotArmor) ? LOC_KVLR_VEST : LOC_CDAM);
 				}
@@ -638,8 +790,14 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				if (!gotArmor)
 				{
 					damage = damage * .65;
-					gi.cprintf(targ, PRINT_HIGH, "Chest damage\n");
-					if (attacker->client)
+					// SPAQ
+					if (client)
+					// SPAQ
+						gi.cprintf(targ, PRINT_HIGH, "Chest damage\n");
+
+					// SPAQ
+					if (client && attacker->client)
+					// SPAQ
 						gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the chest\n",
 							client->pers.netname);
 
@@ -649,7 +807,9 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				}
 				else if (mod == MOD_SNIPER)
 				{
-					if (attacker->client)
+					// SPAQ
+					if (client && attacker->client)
+					// SPAQ
 					{
 						gi.cprintf (attacker, PRINT_HIGH, "%s has a Kevlar Vest, too bad you have AP rounds...\n",
 							client->pers.netname);
@@ -660,7 +820,9 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				}
 				else
 				{
-					if (attacker->client)
+					// SPAQ
+					if (client && attacker->client)
+					// SPAQ
 					{
 						gi.cprintf(attacker, PRINT_HIGH, "%s has a Kevlar Vest - AIM FOR THE HEAD!\n",
 							client->pers.netname);
@@ -676,12 +838,16 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				}
 			}
 			break;
+		}
 		case MOD_M3:
 		case MOD_HC:
 		case MOD_HELD_GRENADE:
 		case MOD_HG_SPLASH:
 		case MOD_G_SPLASH:
 		case MOD_BREAKINGGLASS:
+		// SPAQ
+		case MOD_BARREL:
+		// SPAQ
 			//shotgun damage report stuff
 			if (client)
 				client->took_damage++;
@@ -692,12 +858,18 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		default:
 			break;
 		}
-		if(friendlyFire && team_round_going)
+
+		// SPAQ
+		if(client && friendlyFire && team_round_going)
+		// SPAQ
 		{
 			Add_TeamWound(attacker, targ, mod);
 		}
     }
 
+	// SPAQ
+	damage = max(1, damage);
+	// SPAQ
 
 	if (damage_type && !instant_dam)	// bullets but not vest hits
 	{
@@ -741,8 +913,10 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		te_sparks = TE_SPARKS;
 
   // bonus damage for suprising a monster
-  //      if (!(dflags & DAMAGE_RADIUS) && (targ->svflags & SVF_MONSTER) && (attacker->client) && (!targ->enemy) && (targ->health > 0))
-  //              damage *= 2;
+  // SPAQ
+  if (!(dflags & DAMAGE_RADIUS) && (targ->svflags & SVF_MONSTER) && (attacker->client) && (!targ->enemy) && (targ->health > 0))
+	damage *= 2;
+  // SPAQ
 
 	if (targ->flags & FL_NO_KNOCKBACK)
 		knockback = 0;
@@ -764,6 +938,12 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 
 				VectorNormalize2( dir, flydir );
 				flydir[2] += 0.4f;
+				// SPAQ
+				VectorNormalize(flydir);
+
+				if (!client)
+					mass *= 2.5;
+				// SPAQ
 
 				float accel_scale = (client && (attacker == targ)) ? 1600.f : 500.f; // the rocket jump hack...
 				VectorScale( flydir, accel_scale * (float) knockback / mass, kvel );
@@ -853,6 +1033,17 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		}
 	}
 
+// SPAQ
+	if (targ->svflags & SVF_MONSTER) {
+        M_ReactToDamage(targ, attacker);
+        if (!(targ->monsterinfo.aiflags & AI_DUCKED) && (take)) {
+            targ->pain(targ, attacker, knockback, take);
+            // nightmare mode monsters don't go into pain frames often
+            if (skill->value == 3)
+                targ->pain_debounce_framenum = level.framenum + 5 * BASE_FRAMERATE;
+        }
+    } else 
+// SPAQ
 	if (client)
 	{
 		if (!(targ->flags & FL_GODMODE) && take)
@@ -873,20 +1064,6 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		client->damage_armor += asave;
 		client->damage_blood += take;
 		client->damage_knockback += knockback;
-		//zucc handle adding bleeding here
-		if (bleeding)
-		{
-			client->bleeding += damage * BLEED_TIME;
-			
-			vec3_t fwd, right, up, offset;
-			AngleVectors( targ->s.angles, fwd, right, up );
-			VectorSubtract( point, targ->s.origin, offset );
-			targ->client->bleedloc_offset[0] = DotProduct( offset, fwd );
-			targ->client->bleedloc_offset[1] = DotProduct( offset, right );
-			targ->client->bleedloc_offset[2] = DotProduct( offset, up );
-			
-			client->bleeddelay = level.framenum + 2 * HZ;  // 2 seconds
-		}
 		if (attacker->client)
 		{
 			if (!friendlyFire && !in_warmup) {
@@ -903,6 +1080,22 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		}
 		VectorCopy(point, client->damage_from);
 	}
+	// SPAQ
+	//zucc handle adding bleeding here
+	if (bleeding)
+	{
+		targ->bleeding += damage * BLEED_TIME;
+			
+		vec3_t fwd, right, up, offset;
+		AngleVectors( targ->s.angles, fwd, right, up );
+		VectorSubtract( point, targ->s.origin, offset );
+		targ->bleedloc_offset[0] = DotProduct( offset, fwd );
+		targ->bleedloc_offset[1] = DotProduct( offset, right );
+		targ->bleedloc_offset[2] = DotProduct( offset, up );
+			
+		targ->bleeddelay = level.framenum + 2 * HZ;  // 2 seconds
+	}
+	// SPAQ
 }
 
 
@@ -940,13 +1133,6 @@ T_RadiusDamage (edict_t * inflictor, edict_t * attacker, float damage,
 		//points = points * 0.5; 
 		if (points > 0)
 		{
-#ifdef _DEBUG
-			if (0 == Q_stricmp (ent->classname, "func_explosive"))
-			{
-				CGF_SFX_ShootBreakableGlass (ent, inflictor, 0, mod);
-			}
-			else
-#endif
 			if (CanDamage (ent, inflictor))
 			{
 				VectorSubtract (ent->s.origin, inflictor->s.origin, dir);

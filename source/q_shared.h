@@ -1431,4 +1431,8 @@ typedef struct
 }
 player_state_t;
 
+// SPAQ
+extern vec3_t monster_flash_offset[];
+// SPAQ
+
 #endif

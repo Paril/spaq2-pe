@@ -362,13 +362,13 @@ void vectoangles (vec3_t value1, vec3_t angles)
 
 	if (value1[1] == 0 && value1[0] == 0)
 	{
-		yaw = 0;
-		if (value1[2] > 0)
-			pitch = 90;
-		else if (value1[2] < 0)
-			pitch = 270;
-		else
-			pitch = 180;
+		// SPAQ
+        yaw = 0;
+        if (value1[2] > 0)
+            pitch = 90;
+        else
+            pitch = 270;
+		// SPAQ
 	}
 	else
 	{
@@ -389,8 +389,10 @@ void vectoangles (vec3_t value1, vec3_t angles)
 		if (pitch < 0)
 			pitch += 360;
 	}
-
-	angles[PITCH] = 360 - pitch;
+	
+	// SPAQ
+    angles[PITCH] = -pitch;
+	// SPAQ
 	angles[YAW] = yaw;
 	angles[ROLL] = 0;
 }

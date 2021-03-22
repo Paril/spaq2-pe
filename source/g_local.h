@@ -288,6 +288,7 @@
 #include	"tng_balancer.h"
 #include	"tng_jump.h"
 #include	"g_grapple.h"
+
 #define		getEnt(entnum)	(edict_t *)((char *)globals.edicts + (globals.edict_size * entnum))	//AQ:TNG Slicer - This was missing
 #define		GAMEVERSION			"action"	// the "gameversion" client command will print this plus compile date
 
@@ -296,6 +297,9 @@
 #define GMF_PROPERINUSE             0x00000002
 #define GMF_MVDSPEC					0x00000004
 #define GMF_WANT_ALL_DISCONNECTS    0x00000008
+// SPAQ
+#define GMF_ENHANCED_SAVEGAMES      0x00000400
+// SPAQ
 #define GMF_VARIABLE_FPS			0x00000800
 #define GMF_EXTRA_USERINFO			0x00001000
 
@@ -305,7 +309,9 @@
 #define G_GMF_VARIABLE_FPS 0
 #endif
 
-#define G_FEATURES (GMF_CLIENTNUM | GMF_PROPERINUSE | GMF_MVDSPEC | GMF_WANT_ALL_DISCONNECTS | G_GMF_VARIABLE_FPS)
+// SPAQ
+#define G_FEATURES (GMF_CLIENTNUM | GMF_PROPERINUSE | GMF_MVDSPEC | GMF_WANT_ALL_DISCONNECTS | G_GMF_VARIABLE_FPS | GMF_ENHANCED_SAVEGAMES)
+// SPAQ
 
 // protocol bytes that can be directly added to messages
 #define svc_muzzleflash         1
@@ -353,6 +359,9 @@
 #define FL_POWER_ARMOR                  0x00001000	// power armor (if any) is active
 #define FL_ACCELERATE					0x20000000  // accelerative movement
 #define FL_RESPAWN                      0x80000000	// used for item respawning
+// SPAQ
+#define FL_NO_CHAMPS					0x40000000
+// SPAQ
 
 // variable server FPS
 #ifndef NO_FPS
@@ -718,6 +727,15 @@ typedef struct
 
   // items
   int num_items;
+
+  // SPAQ
+    char        helpmessage1[512];
+    char        helpmessage2[512];
+    int         helpchanged;    // flash F1 icon if non 0, play sound
+                                // and increment only if 1, 2, or 3
+
+    qboolean        autosaved;
+  // SPAQ
 }
 game_locals_t;
 
@@ -790,6 +808,28 @@ typedef struct
   float matchTime;
   float emptyTime;
   int weapon_sound_framenum;
+
+	// SPAQ
+    int         power_cubes;        // ugly necessity for coop
+
+    int         total_secrets;
+    int         found_secrets;
+
+    int         total_goals;
+    int         found_goals;
+
+    int         total_monsters;
+    int         killed_monsters;
+	
+	edict_t     *sight_client;  // changed once each frame for coop games
+
+    edict_t     *sight_entity;
+    int         sight_entity_framenum;
+    edict_t     *sound_entity;
+    int         sound_entity_framenum;
+    edict_t     *sound2_entity;
+    int         sound2_entity_framenum;
+	// SPAQ
 }
 level_locals_t;
 
@@ -903,6 +943,9 @@ extern int sm_meat_index;
 #define MOD_GRAPPLE						36
 #define MOD_TOTAL						37
 #define MOD_FRIENDLY_FIRE               0x8000000
+// SPAQ
+#define MOD_MONSTER						0x10000000
+// SPAQ
 
 // types of locations that can be hit
 #define LOC_HDAM		1	// head
@@ -934,6 +977,11 @@ extern edict_t *g_edicts;
 
 extern cvar_t *maxentities;
 extern cvar_t *deathmatch;
+// SPAQ
+extern cvar_t *coop;
+extern cvar_t *skill;
+extern cvar_t *quickreload;
+// SPAQ
 extern cvar_t *dmflags;
 extern cvar_t *needpass;
 extern cvar_t *hostname;
@@ -1120,22 +1168,24 @@ extern cvar_t *bholelife;
 #define FFL_SPAWNTEMP           1
 #define FFL_NOSPAWN             2
 
-typedef enum
-{
-  F_INT,
-  F_FLOAT,
-  F_LSTRING,			// string on disk, pointer in memory, TAG_LEVEL
-  F_GSTRING,			// string on disk, pointer in memory, TAG_GAME
-  F_VECTOR,
-  F_ANGLEHACK,
-  F_EDICT,			// index on disk, pointer in memory
-  F_ITEM,			// index on disk, pointer in memory
-  F_CLIENT,			// index on disk, pointer in memory
-  F_FUNCTION,
-  F_MMOVE,
-  F_IGNORE
-}
-fieldtype_t;
+//
+// fields are needed for spawning from the entity string
+// and saving / loading games
+//
+typedef enum {
+	F_INT, 
+	F_FLOAT,
+	F_LSTRING,			// string on disk, pointer in memory, TAG_LEVEL
+	F_GSTRING,			// string on disk, pointer in memory, TAG_GAME
+	F_VECTOR,
+	F_ANGLEHACK,
+	F_EDICT,			// index on disk, pointer in memory
+	F_ITEM,				// index on disk, pointer in memory
+	F_CLIENT,			// index on disk, pointer in memory
+	F_FUNCTION,
+	F_MMOVE,
+	F_IGNORE
+} fieldtype_t;
 
 typedef struct
 {
@@ -1273,6 +1323,10 @@ void fire_bullet_sparks(edict_t *self, vec3_t start, vec3_t aimdir, int damage, 
 void fire_bullet_sniper(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int mod);
 void setFFState(edict_t* ent);
 
+// SPAQ
+qboolean fire_hit(edict_t *ent, vec3_t aim, int damage, int kick);
+// SPAQ
+
 //
 // g_client.c
 //
@@ -1372,6 +1426,68 @@ void weapon_grenade_fire(edict_t* ent, qboolean held);
 void InitTookDamage(void);
 void ProduceShotgunDamageReport(edict_t*);
 
+// SPAQ
+//
+// g_monster.c
+//
+void monster_fire_bullet(edict_t *self, vec3_t start, vec3_t dir, int damage, int kick, int hspread, int vspread, int flashtype);
+void monster_fire_shotgun(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype);
+void monster_fire_blaster(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype, int effect);
+void monster_fire_grenade(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int flashtype);
+void monster_fire_rocket(edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype);
+void monster_fire_railgun(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int flashtype);
+void monster_fire_bfg(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int kick, float damage_radius, int flashtype);
+void M_droptofloor(edict_t *ent);
+void monster_think(edict_t *self);
+void walkmonster_start(edict_t *self);
+void swimmonster_start(edict_t *self);
+void flymonster_start(edict_t *self);
+void AttackFinished(edict_t *self, float time);
+void monster_death_use(edict_t *self);
+void M_CatagorizePosition(edict_t *ent);
+qboolean M_CheckAttack(edict_t *self);
+void M_FlyCheck(edict_t *self);
+void M_CheckGround(edict_t *ent);
+// SPAQ
+void M_DropItem(edict_t *self);
+// SPAQ
+
+//
+// g_ai.c
+//
+void AI_SetSightClient(void);
+
+void ai_stand(edict_t *self, float dist);
+void ai_move(edict_t *self, float dist);
+void ai_walk(edict_t *self, float dist);
+void ai_turn(edict_t *self, float dist);
+void ai_run(edict_t *self, float dist);
+void ai_charge(edict_t *self, float dist);
+int range(edict_t *self, edict_t *other);
+
+void FoundTarget(edict_t *self);
+qboolean infront(edict_t *self, edict_t *other);
+qboolean FacingIdeal(edict_t *self);
+
+//
+// m_move.c
+//
+qboolean M_CheckBottom(edict_t *ent);
+qboolean M_walkmove(edict_t *ent, float yaw, float dist);
+void M_MoveToGoal(edict_t *ent, float dist);
+void M_ChangeYaw(edict_t *ent);
+
+//
+// g_ptrail.c
+//
+void PlayerTrail_Init(void);
+void PlayerTrail_Add(vec3_t spot);
+void PlayerTrail_New(vec3_t spot);
+edict_t *PlayerTrail_PickFirst(edict_t *self);
+edict_t *PlayerTrail_PickNext(edict_t *self);
+edict_t *PlayerTrail_LastSpot(void);
+// SPAQ
+
 
 //============================================================================
 
@@ -1401,6 +1517,9 @@ typedef enum {
 	LAYOUT_SCORES,
 	LAYOUT_SCORES2,
 	LAYOUT_MENU
+	// SPAQ
+	, LAYOUT_HELP
+	// SPAQ
 } layout_t;
 
 #define GENDER_STR( ent, he, she, it ) (((ent)->client->pers.gender == GENDER_MALE) ? he : (((ent)->client->pers.gender == GENDER_FEMALE) ? she : it))
@@ -1452,6 +1571,61 @@ typedef struct
 	int irvision;			// ir on or off (only matters if player has ir device, currently bandolier)
 
 	ignorelist_t ignorelist;
+
+	// SPAQ
+	int power_cubes;
+
+    int         game_helpchanged;
+    int         helpchanged;
+
+	int			health, max_health, savedFlags, score;
+
+	int			selected_item;
+	int			inventory[MAX_ITEMS];
+
+	int			max_pistolmags;
+	int			max_shells;
+	int			max_mp5mags;
+	int			max_m4mags;
+	int			max_sniper_rnds;
+
+	int			mk23_max;
+	int			mk23_rds;
+
+	int			dual_max;
+	int			dual_rds;
+	int			shot_max;
+	int			shot_rds;
+	int			sniper_max;
+	int			sniper_rds;
+	int			mp5_max;
+	int			mp5_rds;
+	int			m4_max;
+	int			m4_rds;
+	int			cannon_max;
+	int			cannon_rds;
+	int			knife_max;
+	int			grenade_max;
+
+	gitem_t		*weapon;
+	gitem_t		*lastweapon;
+
+	int			curr_weap;		// uses NAME_NUM values
+
+	int			burst;			// remember if player is bursting or not
+	int			unique_weapon_total;
+	int			unique_item_total;
+	int			leg_damage;
+	int			leg_dam_count;
+	int			leg_noise;
+	int			leghits;
+
+	int			bleeding;			//remaining points to bleed away
+	int			bleed_remain;
+	vec3_t		bleedloc_offset;	// location of bleeding (from origin)
+	int			bleeddelay;			// how long until we bleed again
+	float		head_height;
+	// SPAQ
 }
 client_persistant_t;
 
@@ -1538,6 +1712,10 @@ typedef struct
   qboolean jmp_teleport_ducked;
 
   //char skin[MAX_SKINLEN];
+
+  // SPAQ
+  client_persistant_t coop_respawn;
+  // SPAQ
 }
 client_respawn_t;
 
@@ -1692,11 +1870,6 @@ struct gclient_s
 	int			leg_noise;
 	int			leghits;
 
-	int			bleeding;			//remaining points to bleed away
-	int			bleed_remain;
-	vec3_t		bleedloc_offset;	// location of bleeding (from origin)
-	int			bleeddelay;			// how long until we bleed again
-
 	int			doortoggle;			// set by player with opendoor command
 
 	edict_t		*attacker;		// keep track of the last person to hit us
@@ -1727,8 +1900,85 @@ struct gclient_s
 	edict_t		*ctf_grapple;		// entity of grapple
 	int			ctf_grapplestate;		// true if pulling
 	int			ctf_grapplereleaseframe;	// frame of grapple release
+
+	// SPAQ
+	qboolean	quickreloading;
+	// SPAQ
 };
 
+// SPAQ
+#define MAX_MONSTER_ITEM_DROPS 8
+
+typedef struct {
+    void    (*aifunc)(edict_t *self, float dist);
+    float   dist;
+    void    (*thinkfunc)(edict_t *self);
+} mframe_t;
+
+typedef struct {
+    int         firstframe;
+    int         lastframe;
+    mframe_t    *frame;
+    void        (*endfunc)(edict_t *self);
+} mmove_t;
+
+// SPAQ
+typedef enum
+{
+	CHAMPION_HASTE			= 1,
+	CHAMPION_VEST			= 2,
+	CHAMPION_HELMET			= 4,
+	CHAMPION_STRENGTH		= 8,
+	CHAMPION_BODYGUARDS		= 16,
+	CHAMPION_STRONK			= 32,
+	CHAMPION_SLOW_BLEED		= 64,
+
+	CHAMPION_TOTAL			= 128
+} mchampion_t;
+
+#define MONSTER_IS_CHAMP(x, y) \
+	((x)->monsterinfo.champion & y)
+// SPAQ
+
+typedef struct {
+    mmove_t     *currentmove;
+    int         aiflags;
+    int         nextframe;
+    float       scale;
+
+    void        (*stand)(edict_t *self);
+    void        (*idle)(edict_t *self);
+    void        (*search)(edict_t *self);
+    void        (*walk)(edict_t *self);
+    void        (*run)(edict_t *self);
+    void        (*dodge)(edict_t *self, edict_t *other, float eta);
+    void        (*attack)(edict_t *self);
+    void        (*melee)(edict_t *self);
+    void        (*sight)(edict_t *self, edict_t *other);
+    qboolean    (*checkattack)(edict_t *self);
+
+    int         pause_framenum;
+    int         attack_finished;
+
+    vec3_t      saved_goal;
+    int         search_framenum;
+    int         trail_framenum;
+    vec3_t      last_sighting;
+    int         attack_state;
+    int         lefty;
+    int         idle_framenum;
+    int         linkcount;
+
+    int         power_armor_type;
+    int         power_armor_power;
+
+	// SPAQ
+	mchampion_t	champion;
+	int			item_offset;
+	int			items[MAX_MONSTER_ITEM_DROPS];
+	// SPAQ
+} monsterinfo_t;
+// SPAQ
 
 struct edict_s
 {
@@ -1881,6 +2131,19 @@ struct edict_s
 	qboolean	splatted;
 	int			classnum;
 	int			typeNum;
+
+	// SPAQ
+    int         last_sound_framenum;
+    int         powerarmor_framenum;
+    monsterinfo_t   monsterinfo;
+
+	int			bleeding;			//remaining points to bleed away
+	int			bleed_remain;
+	vec3_t		bleedloc_offset;	// location of bleeding (from origin)
+	int			bleeddelay;			// how long until we bleed again
+	float		head_height;
+	int			bandage_time;
+	// SPAQ
 };
 
 typedef struct

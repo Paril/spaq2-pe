@@ -125,6 +125,10 @@ CGF_SFX_InstallGlassSupport ()
 int
 CGF_SFX_IsBreakableGlassEnabled ()
 {
+    // SPAQ
+    if (!deathmatch->value)
+        return false;
+    // SPAQ
   // returns whether breakable glass is enabled (cvar) and allowed (dm mode)
   return breakableglass->value;
 }

@@ -169,6 +169,9 @@ void SP_item_health_large (edict_t * self);
 void SP_item_health_mega (edict_t * self);
 
 void SP_info_player_start (edict_t * ent);
+// SPAQ
+void SP_info_player_coop (edict_t * ent);
+// SPAQ
 void SP_info_player_deathmatch (edict_t * ent);
 void SP_info_player_intermission (edict_t * ent);
 
@@ -237,6 +240,9 @@ void SP_misc_gib_arm (edict_t * self);
 void SP_misc_gib_leg (edict_t * self);
 void SP_misc_gib_head (edict_t * self);
 void SP_misc_deadsoldier (edict_t * self);
+// SPAQ
+void SP_misc_insane (edict_t *self);
+// SPAQ
 void SP_misc_viper (edict_t * self);
 void SP_misc_viper_bomb (edict_t * self);
 void SP_misc_bigviper (edict_t * self);
@@ -248,6 +254,35 @@ void SP_misc_eastertank (edict_t * self);
 void SP_misc_easterchick (edict_t * self);
 void SP_misc_easterchick2 (edict_t * self);
 
+// SPAQ
+void SP_monster_berserk(edict_t *self);
+void SP_monster_gladiator(edict_t *self);
+void SP_monster_gunner(edict_t *self);
+void SP_monster_infantry(edict_t *self);
+void SP_monster_soldier_light(edict_t *self);
+void SP_monster_soldier(edict_t *self);
+void SP_monster_soldier_ss(edict_t *self);
+void SP_monster_tank(edict_t *self);
+void SP_monster_medic(edict_t *self);
+void SP_monster_flipper(edict_t *self);
+void SP_monster_chick(edict_t *self);
+void SP_monster_parasite(edict_t *self);
+void SP_monster_flyer(edict_t *self);
+void SP_monster_brain(edict_t *self);
+void SP_monster_floater(edict_t *self);
+void SP_monster_hover(edict_t *self);
+void SP_monster_mutant(edict_t *self);
+void SP_monster_supertank(edict_t *self);
+void SP_monster_boss2(edict_t *self);
+void SP_monster_jorg(edict_t *self);
+void SP_monster_boss3_stand(edict_t *self);
+
+void SP_monster_commander_body(edict_t *self);
+
+void SP_turret_breach(edict_t *self);
+void SP_turret_base(edict_t *self);
+void SP_turret_driver(edict_t *self);
+// SPAQ
 
 //zucc - item replacement function
 void CheckItem (edict_t * ent);
@@ -268,6 +303,9 @@ static const spawn_t spawns[] = {
   {"item_health_mega", SP_item_health_mega},
 
   {"info_player_start", SP_info_player_start},
+  // SPAQ
+  {"info_player_coop", SP_info_player_coop},
+  // SPAQ
   {"info_player_deathmatch", SP_info_player_deathmatch},
   {"info_player_intermission", SP_info_player_intermission},
 
@@ -307,15 +345,19 @@ static const spawn_t spawns[] = {
   {"target_speaker", SP_target_speaker},
   {"target_explosion", SP_target_explosion},
   {"target_changelevel", SP_target_changelevel},
-//  {"target_secret", SP_target_secret},
-//  {"target_goal", SP_target_goal},
+  // SPAQ
+  {"target_secret", SP_target_secret},
+  {"target_goal", SP_target_goal},
+  // SPAQ
   {"target_splash", SP_target_splash},
   {"target_spawner", SP_target_spawner},
   {"target_blaster", SP_target_blaster},
   {"target_crosslevel_trigger", SP_target_crosslevel_trigger},
   {"target_crosslevel_target", SP_target_crosslevel_target},
   {"target_laser", SP_target_laser},
-//  {"target_help", SP_target_help},
+  // SPAQ
+  {"target_help", SP_target_help},
+  // SPAQ
 // monster      {"target_actor", SP_target_actor},
 //  {"target_lightramp", SP_target_lightramp},
   {"target_earthquake", SP_target_earthquake},
@@ -325,16 +367,22 @@ static const spawn_t spawns[] = {
   {"worldspawn", SP_worldspawn},
   {"viewthing", SP_viewthing},
 
-//  {"light", SP_light},
+  // SPAQ
+  {"light", SP_light},
+  // SPAQ
   {"light_mine1", SP_light_mine1},
   {"light_mine2", SP_light_mine2},
   {"info_null", SP_info_null},
   {"func_group", SP_info_null},
   {"info_notnull", SP_info_notnull},
   {"path_corner", SP_path_corner},
-//  {"point_combat", SP_point_combat},
+  // SPAQ
+  {"point_combat", SP_point_combat},
+  // SPAQ
 
-//  {"misc_explobox", SP_misc_explobox},
+// SPAQ
+  {"misc_explobox", SP_misc_explobox},
+// SPAQ
   {"misc_banner", SP_misc_banner},
 
   {"misc_ctf_banner", SP_misc_ctf_banner},
@@ -345,8 +393,10 @@ static const spawn_t spawns[] = {
   {"misc_gib_arm", SP_misc_gib_arm},
   {"misc_gib_leg", SP_misc_gib_leg},
   {"misc_gib_head", SP_misc_gib_head},
-  // monster {"misc_insane", SP_misc_insane},
-  //{"misc_deadsoldier", SP_misc_deadsoldier},
+  // SPAQ
+  {"misc_insane", SP_misc_insane},
+  {"misc_deadsoldier", SP_misc_deadsoldier},
+  // SPAQ
   {"misc_viper", SP_misc_viper},
   {"misc_viper_bomb", SP_misc_viper_bomb},
   {"misc_bigviper", SP_misc_bigviper},
@@ -359,6 +409,37 @@ static const spawn_t spawns[] = {
   {"misc_eastertank", SP_misc_eastertank},
   {"misc_easterchick", SP_misc_easterchick},
   {"misc_easterchick2", SP_misc_easterchick2},
+
+// SPAQ
+    {"monster_berserk", SP_monster_berserk},
+    {"monster_gladiator", SP_monster_gladiator},
+    {"monster_gunner", SP_monster_gunner},
+    {"monster_infantry", SP_monster_infantry},
+    {"monster_soldier_light", SP_monster_soldier_light},
+    {"monster_soldier", SP_monster_soldier},
+    {"monster_soldier_ss", SP_monster_soldier_ss},
+    {"monster_tank", SP_monster_tank},
+    {"monster_tank_commander", SP_monster_tank},
+    {"monster_medic", SP_monster_medic},
+    {"monster_flipper", SP_monster_flipper},
+    {"monster_chick", SP_monster_chick},
+    {"monster_parasite", SP_monster_parasite},
+    {"monster_flyer", SP_monster_flyer},
+    {"monster_brain", SP_monster_brain},
+    {"monster_floater", SP_monster_floater},
+    {"monster_hover", SP_monster_hover},
+    {"monster_mutant", SP_monster_mutant},
+    {"monster_supertank", SP_monster_supertank},
+    {"monster_boss2", SP_monster_boss2},
+    {"monster_boss3_stand", SP_monster_boss3_stand},
+    {"monster_jorg", SP_monster_jorg},
+
+    {"monster_commander_body", SP_monster_commander_body},
+
+    {"turret_breach", SP_turret_breach},
+    {"turret_base", SP_turret_base},
+    {"turret_driver", SP_turret_driver},
+// SPAQ
 
   {NULL, NULL}
 };
@@ -413,6 +494,12 @@ void ED_CallSpawn (edict_t * ent)
 				else
 					G_FreeEdict(ent);
 			}
+			// SPAQ
+			else if (!deathmatch->value || coop->value)
+			{
+				SpawnItem( ent, item );
+			}
+			// SPAQ
 			else
 			{
 				G_FreeEdict(ent);
@@ -432,9 +519,11 @@ void ED_CallSpawn (edict_t * ent)
 		}
 	}
 
-	/*if(strcmp (ent->classname, "freed") != 0) {
+	// SPAQ
+	if (!deathmatch->value && strcmp(ent->classname, "freed")) {
 		gi.dprintf ("%s doesn't have a spawn function\n", ent->classname);
-	}*/
+	}
+	// SPAQ
 
 	G_FreeEdict( ent );
 }
@@ -843,6 +932,12 @@ void G_LoadLocations( void )
 	gi.dprintf( "Found %d locations.\n", ml_count );
 }
 
+// SPAQ
+void SaveClientData(void);
+void FetchClientEntData(edict_t *ent);
+void CreateChampions(void);
+// SPAQ
+
 /*
 ==============
 SpawnEntities
@@ -858,6 +953,18 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	client_persistant_t pers;
 	int i, inhibit = 0;
 	char *com_token;
+	
+	// SPAQ
+    int skill_level = floor(skill->value);
+    if (skill_level < 0)
+        skill_level = 0;
+    if (skill_level > 3)
+        skill_level = 3;
+    if (skill->value != skill_level)
+        gi.cvar_forceset("skill", va("%i", skill_level));
+
+	SaveClientData ();
+	// SPAQ
 
 	// Reset teamplay stuff
 	for(i = TEAM1; i < TEAM_TOP; i++)
@@ -877,11 +984,56 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	teamCount = 2;
 	gameSettings = 0;
 
-	if (jump->value)
+	// SPAQ
+	if (coop->value || !deathmatch->value)
+	{
+		if (deathmatch->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing deathmatch off\n");
+			gi.cvar_forceset(deathmatch->name, "0");
+		}
+		if (teamplay->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing teamplay off\n");
+			gi.cvar_forceset(teamplay->name, "0");
+		}
+		if (use_3teams->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing 3Teams off\n");
+			gi.cvar_forceset(use_3teams->name, "0");
+		}
+		if (teamdm->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing Team DM off\n");
+			gi.cvar_forceset(teamdm->name, "0");
+		}
+		if (use_tourney->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing Tourney off\n");
+			gi.cvar_forceset(use_tourney->name, "0");
+		}
+		if (ctf->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing CTF off\n");
+			gi.cvar_forceset(ctf->name, "0");
+		}
+		if (dom->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing Domination off\n");
+			gi.cvar_forceset(dom->name, "0");
+		}
+		if (jump->value)
+		{
+			gi.dprintf ("SPAQ Enabled - Forcing Jump off\n");
+			gi.cvar_forceset(jump->name, "0");
+		}
+	}
+	// SPAQ
+	else if (jump->value)
 	{
 		if (teamplay->value)
 		{
-			gi.dprintf ("Jump Enabled - Forcing teamplay ff\n");
+			gi.dprintf ("Jump Enabled - Forcing teamplay off\n");
 			gi.cvar_forceset(teamplay->name, "0");
 		}
 		if (use_3teams->value)
@@ -1063,7 +1215,6 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 		}
 	}
 
-
 	gi.cvar_forceset(maptime->name, "0:00");
 
 	gi.FreeTags(TAG_LEVEL);
@@ -1083,20 +1234,27 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 		ent->client = client;
 
 		// clear everything but the persistant data
-		pers = client->pers;
-		int saved_team = client->resp.team;
-		memset(client, 0, sizeof(*client));
-		client->pers = pers;
-		if( pers.connected )
+		// SPAQ
+		if (deathmatch->value)
 		{
-			client->clientNum = i;
+		// SPAQ
+			pers = client->pers;
+			int saved_team = client->resp.team;
+			memset(client, 0, sizeof(*client));
+			client->pers = pers;
+			if( pers.connected )
+			{
+				client->clientNum = i;
 
-			if( auto_join->value )
-				client->resp.team = saved_team;
+				if( auto_join->value )
+					client->resp.team = saved_team;
 
-			// combine name and skin into a configstring
-			AssignSkin( ent, Info_ValueForKey( client->pers.userinfo, "skin" ), false );
+				// combine name and skin into a configstring
+				AssignSkin( ent, Info_ValueForKey( client->pers.userinfo, "skin" ), false );
+			}
+		// SPAQ
 		}
+		// SPAQ
 	}
 
 	ent = NULL;
@@ -1125,19 +1283,29 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 			ent->spawnflags &= ~SPAWNFLAG_NOT_HARD;
 
 		// remove things (except the world) from different skill levels or deathmatch
-		if (ent != g_edicts)
-		{
-			if (ent->spawnflags & SPAWNFLAG_NOT_DEATHMATCH)
-			{
-				G_FreeEdict (ent);
-				inhibit++;
-				continue;
-			}
+		// SPAQ
+        if (ent != g_edicts) {
+            if (deathmatch->value) {
+                if (ent->spawnflags & SPAWNFLAG_NOT_DEATHMATCH) {
+                    G_FreeEdict(ent);
+                    inhibit++;
+                    continue;
+                }
+            } else {
+                if ( /* ((coop->value) && (ent->spawnflags & SPAWNFLAG_NOT_COOP)) || */
+                    ((skill->value == 0) && (ent->spawnflags & SPAWNFLAG_NOT_EASY)) ||
+                    ((skill->value == 1) && (ent->spawnflags & SPAWNFLAG_NOT_MEDIUM)) ||
+                    (((skill->value == 2) || (skill->value == 3)) && (ent->spawnflags & SPAWNFLAG_NOT_HARD))
+                ) {
+                    G_FreeEdict(ent);
+                    inhibit++;
+                    continue;
+                }
+            }
 
-			ent->spawnflags &=
-			~(SPAWNFLAG_NOT_EASY | SPAWNFLAG_NOT_MEDIUM | SPAWNFLAG_NOT_HARD |
-			SPAWNFLAG_NOT_COOP | SPAWNFLAG_NOT_DEATHMATCH);
-		}
+            ent->spawnflags &= ~(SPAWNFLAG_NOT_EASY | SPAWNFLAG_NOT_MEDIUM | SPAWNFLAG_NOT_HARD | SPAWNFLAG_NOT_COOP | SPAWNFLAG_NOT_DEATHMATCH);
+        }
+		// SPAQ
 
 		ED_CallSpawn (ent);
 	}
@@ -1165,10 +1333,16 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 
 	G_FindTeams();
 
+	// SPAQ
+    PlayerTrail_Init();
+	// SPAQ
+
 	// TNG:Freud - Ghosts
 	num_ghost_players = 0;
 
-	if (!(gameSettings & GS_WEAPONCHOOSE) && !jump->value)
+	// SPAQ
+	if (!(gameSettings & GS_WEAPONCHOOSE) && !jump->value && deathmatch->value)
+	// SPAQ
 	{
 		//zucc for special items
 		SetupSpecSpawn();
@@ -1184,6 +1358,10 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 	G_LoadLocations();
 
 	UnBan_TeamKillers();
+
+	// SPAQ
+	CreateChampions();
+	// SPAQ
 }
 
 
@@ -1556,26 +1734,36 @@ void SP_worldspawn (edict_t * ent)
 	level.snd_kick = gi.soundindex("weapons/kick.wav");	// not loaded by any item, kick sound
 	level.snd_noammo = gi.soundindex("weapons/noammo.wav");
 
-	gi.soundindex("tng/1_minute.wav");
-	gi.soundindex("tng/3_minutes.wav");
-	gi.soundindex("tng/1_frag.wav");
-	gi.soundindex("tng/2_frags.wav");
-	gi.soundindex("tng/3_frags.wav");
-	gi.soundindex("tng/impressive.wav");
-	gi.soundindex("tng/excellent.wav");
-	gi.soundindex("tng/accuracy.wav");
-	gi.soundindex("tng/clanwar.wav");
-	gi.soundindex("tng/disabled.wav");
-	gi.soundindex("tng/enabled.wav");
-	gi.soundindex("misc/flashlight.wav"); // Caching Flashlight
+	// SPAQ
+	if (deathmatch->value)
+	{
+	// SPAQ
+		gi.soundindex("tng/1_minute.wav");
+		gi.soundindex("tng/3_minutes.wav");
+		gi.soundindex("tng/1_frag.wav");
+		gi.soundindex("tng/2_frags.wav");
+		gi.soundindex("tng/3_frags.wav");
+		gi.soundindex("tng/impressive.wav");
+		gi.soundindex("tng/excellent.wav");
+		gi.soundindex("tng/accuracy.wav");
+		gi.soundindex("tng/clanwar.wav");
+		gi.soundindex("tng/disabled.wav");
+		gi.soundindex("tng/enabled.wav");
+		gi.soundindex("misc/flashlight.wav"); // Caching Flashlight
 
-	gi.soundindex("world/10_0.wav");	// countdown
-	gi.soundindex("world/xian1.wav");	// intermission music
-	gi.soundindex("misc/secret.wav");	// used for ctf swap sound
-	gi.soundindex("weapons/grenlf1a.wav");	// respawn sound
+		gi.soundindex("world/10_0.wav");	// countdown
+		gi.soundindex("world/xian1.wav");	// intermission music
+		gi.soundindex("misc/secret.wav");	// used for ctf swap sound
+		gi.soundindex("weapons/grenlf1a.wav");	// respawn sound
+	// SPAQ
+	}
+	// SPAQ
 
 	PrecacheItems();
-	PrecacheRadioSounds();
+	// SPAQ
+	if (deathmatch->value)
+	// SPAQ
+		PrecacheRadioSounds();
 	PrecacheUserSounds();
 
 	TourneyInit();

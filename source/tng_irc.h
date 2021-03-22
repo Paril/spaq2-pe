@@ -13,6 +13,7 @@
 //
 //-----------------------------------------------------------------------------
 
+#ifndef TNG_NO_IRC
 #define IRC_SERVER  	"irc.barrysworld.com"
 #define IRC_PORT    	"6667"
 #define IRC_CHANNEL 	""
@@ -97,3 +98,10 @@ void IRC_exit       (void);
 void IRC_printf     (int type, char *fmt, ... );
 void IRC_poll       (void);
 void SVCmd_ircraw_f (void);
+#else
+#define IRC_init()
+#define IRC_exit()
+#define IRC_printf(...)
+#define IRC_poll()
+#define SVCmd_ircraw_f()
+#endif

@@ -99,6 +99,10 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 	vec3_t water_start;
 	qboolean water = false;
 	int content_mask = MASK_SHOT | MASK_WATER;
+	// SPAQ
+	qboolean fired_by_monster = mod & MOD_MONSTER;
+	mod &= ~MOD_MONSTER;
+	// SPAQ
 
 	PRETRACE ();
 	tr = gi.trace (self->s.origin, NULL, NULL, start, self, MASK_SHOT);
@@ -125,9 +129,22 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 		tr = gi.trace (start, NULL, NULL, end, self, content_mask);
 		POSTTRACE();
 
+		// SPAQ
+		if (fired_by_monster)
+		{
+			gi.WriteByte(svc_temp_entity);
+			gi.WriteByte(TE_BUBBLETRAIL);
+			gi.WritePosition(start);
+			gi.WritePosition(tr.endpos);
+			gi.multicast(start, MULTICAST_PVS);
+		}
+		// SPAQ
+
 		// glass fx
 		// catch case of firing thru one or breakable glasses
-		while ((tr.fraction < 1.0) && (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66))
+		// SPAQ
+		while (CGF_SFX_IsBreakableGlassEnabled() && (tr.fraction < 1.0) && (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66))
+		// SPAQ
 			&& tr.ent && !Q_stricmp(tr.ent->classname, "func_explosive"))
 		{
 			// break glass  
@@ -276,7 +293,10 @@ static void fire_lead_ap(edict_t *self, vec3_t start, vec3_t aimdir, int damage,
 	int content_mask = MASK_SHOT | MASK_WATER;
 	vec3_t from;
 	edict_t *ignore;
-
+	// SPAQ
+	qboolean fired_by_monster = mod & MOD_MONSTER;
+	mod &= ~MOD_MONSTER;
+	// SPAQ
 
 	InitTookDamage();
 
@@ -312,9 +332,22 @@ static void fire_lead_ap(edict_t *self, vec3_t start, vec3_t aimdir, int damage,
 		tr = gi.trace(from, NULL, NULL, end, ignore, content_mask);
 		POSTTRACE();
 
+		// SPAQ
+		if (fired_by_monster)
+		{
+			gi.WriteByte(svc_temp_entity);
+			gi.WriteByte(TE_BUBBLETRAIL2);
+			gi.WritePosition(from);
+			gi.WritePosition(tr.endpos);
+			gi.multicast(from, MULTICAST_PVS);
+		}
+		// SPAQ
+
 		// glass fx
 		// catch case of firing thru one or breakable glasses
-		while (tr.fraction < 1.0 && (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66))
+		// SPAQ
+		while (CGF_SFX_IsBreakableGlassEnabled() && tr.fraction < 1.0 && (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66))
+		// SPAQ
 			&& (tr.ent) && (0 == Q_stricmp (tr.ent->classname, "func_explosive")))
 		{
 			// break glass  
@@ -838,10 +871,16 @@ void kick_attack (edict_t *ent)
 					return;
 			}
 		}
+		// SPAQ
+		else if (tr.ent->svflags & SVF_MONSTER)
+			M_DropItem(tr.ent);
+		// SPAQ
 		// zucc stop powerful upwards kicking
 		//forward[2] = 0;
 		// glass fx
-		if (Q_stricmp(tr.ent->classname, "func_explosive") == 0)
+		// SPAQ
+		if (CGF_SFX_IsBreakableGlassEnabled() && Q_stricmp(tr.ent->classname, "func_explosive") == 0)
+		// SPAQ
 			CGF_SFX_ShootBreakableGlass(tr.ent, ent, &tr, MOD_KICK);
 		else
 			T_Damage(tr.ent, ent, ent, forward, tr.endpos, tr.plane.normal, damage, kick, 0, MOD_KICK);
@@ -984,7 +1023,9 @@ int knife_attack (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int ki
 	if (tr.fraction < 1.0)
 	{
 		//glass fx
-		if (0 == Q_stricmp(tr.ent->classname, "func_explosive"))
+		// SPAQ
+		if (CGF_SFX_IsBreakableGlassEnabled() && 0 == Q_stricmp(tr.ent->classname, "func_explosive"))
+		// SPAQ
 		{
 			CGF_SFX_ShootBreakableGlass(tr.ent, self, &tr, MOD_KNIFE);
 		}
@@ -1006,6 +1047,74 @@ int knife_attack (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int ki
 	}
 	return 0;
 }
+
+// SPAQ
+/*
+=================
+fire_hit
+
+Used for all impact (hit/punch/slash) attacks
+=================
+*/
+qboolean fire_hit(edict_t *self, vec3_t aim, int damage, int kick)
+{
+    trace_t     tr;
+    vec3_t      forward, right, up;
+    vec3_t      v;
+    vec3_t      point;
+    float       range;
+    vec3_t      dir;
+
+    //see if enemy is in range
+    VectorSubtract(self->enemy->s.origin, self->s.origin, dir);
+    range = VectorLength(dir);
+    if (range > aim[0])
+        return false;
+
+    if (aim[1] > self->mins[0] && aim[1] < self->maxs[0]) {
+        // the hit is straight on so back the range up to the edge of their bbox
+        range -= self->enemy->maxs[0];
+    } else {
+        // this is a side hit so adjust the "right" value out to the edge of their bbox
+        if (aim[1] < 0)
+            aim[1] = self->enemy->mins[0];
+        else
+            aim[1] = self->enemy->maxs[0];
+    }
+
+    VectorMA(self->s.origin, range, dir, point);
+
+    tr = gi.trace(self->s.origin, NULL, NULL, point, self, MASK_SHOT);
+    if (tr.fraction < 1) {
+        if (!tr.ent->takedamage)
+            return false;
+        // if it will hit any client/monster then hit the one we wanted to hit
+        if ((tr.ent->svflags & SVF_MONSTER) || (tr.ent->client))
+            tr.ent = self->enemy;
+    }
+
+    AngleVectors(self->s.angles, forward, right, up);
+    VectorMA(self->s.origin, range, forward, point);
+    VectorMA(point, aim[1], right, point);
+    VectorMA(point, aim[2], up, point);
+    VectorSubtract(point, self->enemy->s.origin, dir);
+
+    // do the damage
+    T_Damage(tr.ent, self, self, dir, point, vec3_origin, damage, kick / 2, DAMAGE_NO_KNOCKBACK, MOD_KNIFE);
+
+    if (!(tr.ent->svflags & SVF_MONSTER) && (!tr.ent->client))
+        return false;
+
+    // do our special form of knockback here
+    VectorMA(self->enemy->absmin, 0.5f, self->enemy->size, v);
+    VectorSubtract(v, point, v);
+    VectorNormalize(v);
+    VectorMA(self->enemy->velocity, kick, v, self->enemy->velocity);
+    if (self->enemy->velocity[2] > 0)
+        self->enemy->groundentity = NULL;
+    return true;
+}
+// SPAQ
 
 static int knives = 0;
 
