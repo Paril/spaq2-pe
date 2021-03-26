@@ -691,6 +691,10 @@ field_t savefields[] = {
 //need for item field in edict struct, FFL_SPAWNTEMP item will be skipped on saves
 	{"item", FOFS(item), F_ITEM},
 
+	// SPAQ
+	{"collision.model_name", FOFS(collision.model_name), F_LSTRING},
+	// SPAQ
+
 	{ NULL }
 };
 
@@ -1385,6 +1389,10 @@ void ReadLevel (char *filename)
 		ent->client->pers.connected = false;
 	}
 
+	// SPAQ
+	Col_ClearModelLinks();
+	// SPAQ
+
 	// do any load time things at this point
 	for (i=0 ; i<globals.num_edicts ; i++)
 	{
@@ -1397,5 +1405,17 @@ void ReadLevel (char *filename)
 		if (ent->classname)
 			if (strcmp(ent->classname, "target_crosslevel_target") == 0)
 				ent->nextthink = level.time + ent->delay;
+
+		// SPAQ
+		// re-load collision models
+		if (ent->collision.model_name)
+			Col_SetModel(ent, NULL, ent->collision.model_name);
+		else
+			ent->collision.model = NULL;
+		// SPAQ
 	}
+
+	// SPAQ
+	Col_RemoveUnusedModels();
+	// SPAQ
 }

@@ -443,11 +443,7 @@ static int machinegun_flash [] = {MZ2_SOLDIER_MACHINEGUN_1, MZ2_SOLDIER_MACHINEG
 void soldier_fire(edict_t *self, int flash_number)
 {
     vec3_t  start;
-    vec3_t  forward, right, up;
-    vec3_t  aim;
-    vec3_t  dir;
-    vec3_t  end;
-    float   r, u;
+    vec3_t  forward, right;
     int     flash_index;
     float   *aimdir;
 
@@ -462,8 +458,7 @@ void soldier_fire(edict_t *self, int flash_number)
     G_ProjectSource(self->s.origin, monster_flash_offset[flash_index], forward, right, start);
 
     if (flash_number == 5 || flash_number == 6) {
-        VectorCopy(forward, aim);
-        aimdir = &aim[0];
+        aimdir = &forward[0];
     } else {
         aimdir = NULL;
     }
@@ -727,7 +722,9 @@ mmove_t soldier_move_attack6 = {FRAME_runs01, FRAME_runs14, soldier_frames_attac
 
 void soldier_attack(edict_t *self)
 {
-    if (self->s.skinnum < 4) {
+	if (random() < 0.3f) {
+		self->monsterinfo.currentmove = &soldier_move_attack3;
+	} else if (self->s.skinnum < 4) {
         if (random() < 0.5f)
             self->monsterinfo.currentmove = &soldier_move_attack1;
         else
@@ -1139,8 +1136,9 @@ void soldier_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 
 void SP_monster_soldier_x(edict_t *self)
 {
-
-    self->s.modelindex = gi.modelindex("models/monsters/soldier/tris.md2");
+	// SPAQ
+	Col_SetModel(self, "models/monsters/soldier/tris.md2", "collisions/monsters/soldier/tris.md2");
+	// SPAQ
     self->monsterinfo.scale = MODEL_SCALE;
     VectorSet(self->mins, -16, -16, -24);
     VectorSet(self->maxs, 16, 16, 32);

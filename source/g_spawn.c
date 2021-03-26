@@ -964,6 +964,8 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
         gi.cvar_forceset("skill", va("%i", skill_level));
 
 	SaveClientData ();
+
+	Col_ClearModelLinks();
 	// SPAQ
 
 	// Reset teamplay stuff
@@ -1361,6 +1363,8 @@ void SpawnEntities (char *mapname, char *entities, char *spawnpoint)
 
 	// SPAQ
 	CreateChampions();
+
+	Col_RemoveUnusedModels();
 	// SPAQ
 }
 

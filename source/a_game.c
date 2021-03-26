@@ -710,178 +710,204 @@ void EjectShell(edict_t * self, vec3_t start, int toggle)
 	shell = G_Spawn();
 	++shells;
 
-	AngleVectors(self->client->v_angle, forward, right, up);
+	if (self->client)
+	{
+		AngleVectors(self->client->v_angle, forward, right, up);
 
-	if (self->client->pers.hand == LEFT_HANDED) {
-		left = 1;
-		fix = -1.0;
-	} else if (self->client->pers.hand == CENTER_HANDED)
-		fix = 0;
+		if (self->client->pers.hand == LEFT_HANDED) {
+			left = 1;
+			fix = -1.0;
+		} else if (self->client->pers.hand == CENTER_HANDED)
+			fix = 0;
 
-	// zucc spent a fair amount of time hacking these until they look ok,
-	// several of them could be improved however.
+		// zucc spent a fair amount of time hacking these until they look ok,
+		// several of them could be improved however.
 
-	if (self->client->curr_weap == MK23_NUM) {
-		VectorMA(start, left ? -7 : .4, right, start);
-		VectorMA(start, left ? 5 : 2, forward, start);
-		VectorMA(start, left ? -10 : -8, up, start);
-	} else if (self->client->curr_weap == M4_NUM) {
-		VectorMA(start, left ? -10 : 5, right, start);
-		VectorMA(start, left ? 6 : 12, forward, start);
-		VectorMA(start, left ? -9 : -11, up, start);
-	} else if (self->client->curr_weap == MP5_NUM) {
-		VectorMA(start, left ? -10 : 6, right, start);
-		VectorMA(start, left ? 6 : 8, forward, start);
-		VectorMA(start, left ? -9 : -10, up, start);
-	} else if (self->client->curr_weap == SNIPER_NUM) {
-		VectorMA(start, fix * 11, right, start);
-		VectorMA(start, 2, forward, start);
-		VectorMA(start, -11, up, start);
+		if (self->client->curr_weap == MK23_NUM) {
+			VectorMA(start, left ? -7 : .4, right, start);
+			VectorMA(start, left ? 5 : 2, forward, start);
+			VectorMA(start, left ? -10 : -8, up, start);
+		} else if (self->client->curr_weap == M4_NUM) {
+			VectorMA(start, left ? -10 : 5, right, start);
+			VectorMA(start, left ? 6 : 12, forward, start);
+			VectorMA(start, left ? -9 : -11, up, start);
+		} else if (self->client->curr_weap == MP5_NUM) {
+			VectorMA(start, left ? -10 : 6, right, start);
+			VectorMA(start, left ? 6 : 8, forward, start);
+			VectorMA(start, left ? -9 : -10, up, start);
+		} else if (self->client->curr_weap == SNIPER_NUM) {
+			VectorMA(start, fix * 11, right, start);
+			VectorMA(start, 2, forward, start);
+			VectorMA(start, -11, up, start);
 
-	} else if (self->client->curr_weap == M3_NUM) {
-		VectorMA(start, left ? -9 : 3, right, start);
-		VectorMA(start, left ? 4 : 4, forward, start);
-		VectorMA(start, left ? -1 : -1, up, start);
-	}
+		} else if (self->client->curr_weap == M3_NUM) {
+			VectorMA(start, left ? -9 : 3, right, start);
+			VectorMA(start, left ? 4 : 4, forward, start);
+			VectorMA(start, left ? -1 : -1, up, start);
+		}
 
-	else if (self->client->curr_weap == DUAL_NUM) {
-		if (self->client->pers.hand == LEFT_HANDED)
-			VectorMA(start, ((toggle == 1) ? 8 : -8), right, start);
+		else if (self->client->curr_weap == DUAL_NUM) {
+			if (self->client->pers.hand == LEFT_HANDED)
+				VectorMA(start, ((toggle == 1) ? 8 : -8), right, start);
+			else
+				VectorMA(start, ((toggle == 1) ? -4 : 4), right, start);
+			VectorMA(start, 6, forward, start);
+			VectorMA(start, -9, up, start);
+
+		}
+
+		if ((forward[2] >= -1) && (forward[2] < -0.99)) {
+			VectorMA(start, 5, forward, start);
+			VectorMA(start, -0.5, up, start);
+		} else if ((forward[2] >= -0.99) && (forward[2] < -0.98)) {
+			VectorMA(start, 5, forward, start);
+			VectorMA(start, -.1, up, start);
+		} else if ((forward[2] >= -0.98) && (forward[2] < -0.97)) {
+			VectorMA(start, 5.1, forward, start);
+			VectorMA(start, 0.3, up, start);
+		} else if ((forward[2] >= -0.97) && (forward[2] < -0.96)) {
+			VectorMA(start, 5.2, forward, start);
+			VectorMA(start, 0.7, up, start);
+		} else if ((forward[2] >= -0.96) && (forward[2] < -0.95)) {
+			VectorMA(start, 5.2, forward, start);
+			VectorMA(start, 1.1, up, start);
+		} else if ((forward[2] >= -0.95) && (forward[2] < -0.94)) {
+			VectorMA(start, 5.3, forward, start);
+			VectorMA(start, 1.5, up, start);
+		} else if ((forward[2] >= -0.94) && (forward[2] < -0.93)) {
+			VectorMA(start, 5.4, forward, start);
+			VectorMA(start, 1.9, up, start);
+		} else if ((forward[2] >= -0.93) && (forward[2] < -0.92)) {
+			VectorMA(start, 5.5, forward, start);
+			VectorMA(start, 2.3, up, start);
+		} else if ((forward[2] >= -0.92) && (forward[2] < -0.91)) {
+			VectorMA(start, 5.6, forward, start);
+			VectorMA(start, 2.7, up, start);
+		} else if ((forward[2] >= -0.91) && (forward[2] < -0.9)) {
+			VectorMA(start, 5.7, forward, start);
+			VectorMA(start, 3.1, up, start);
+		} else if ((forward[2] >= -0.9) && (forward[2] < -0.85)) {
+			VectorMA(start, 5.8, forward, start);
+			VectorMA(start, 3.5, up, start);
+		} else if ((forward[2] >= -0.85) && (forward[2] < -0.8)) {
+			VectorMA(start, 6, forward, start);
+			VectorMA(start, 4, up, start);
+		} else if ((forward[2] >= -0.8) && (forward[2] < -0.6)) {
+			VectorMA(start, 6.5, forward, start);
+			VectorMA(start, 4.5, up, start);
+		} else if ((forward[2] >= -0.6) && (forward[2] < -0.4)) {
+			VectorMA(start, 8, forward, start);
+			VectorMA(start, 5.5, up, start);
+		} else if ((forward[2] >= -0.4) && (forward[2] < -0.2)) {
+			VectorMA(start, 9.5, forward, start);
+			VectorMA(start, 6, up, start);
+		} else if ((forward[2] >= -0.2) && (forward[2] < 0)) {
+			VectorMA(start, 11, forward, start);
+			VectorMA(start, 6.5, up, start);
+		} else if ((forward[2] >= 0) && (forward[2] < 0.2)) {
+			VectorMA(start, 12, forward, start);
+			VectorMA(start, 7, up, start);
+		} else if ((forward[2] >= 0.2) && (forward[2] < 0.4)) {
+			VectorMA(start, 14, forward, start);
+			VectorMA(start, 6.5, up, start);
+		} else if ((forward[2] >= 0.4) && (forward[2] < 0.6)) {
+			VectorMA(start, 16, forward, start);
+			VectorMA(start, 6, up, start);
+		} else if ((forward[2] >= 0.6) && (forward[2] < 0.8)) {
+			VectorMA(start, 18, forward, start);
+			VectorMA(start, 5, up, start);
+		} else if ((forward[2] >= 0.8) && (forward[2] < 0.85)) {
+			VectorMA(start, 18, forward, start);
+			VectorMA(start, 4, up, start);
+		} else if ((forward[2] >= 0.85) && (forward[2] < 0.9)) {
+			VectorMA(start, 18, forward, start);
+			VectorMA(start, 2.5, up, start);
+		} else if ((forward[2] >= 0.9) && (forward[2] < 0.91)) {
+			VectorMA(start, 18.2, forward, start);
+			VectorMA(start, 2.2, up, start);
+		} else if ((forward[2] >= 0.91) && (forward[2] < 0.92)) {
+			VectorMA(start, 18.4, forward, start);
+			VectorMA(start, 1.9, up, start);
+		} else if ((forward[2] >= 0.92) && (forward[2] < 0.93)) {
+			VectorMA(start, 18.6, forward, start);
+			VectorMA(start, 1.6, up, start);
+		} else if ((forward[2] >= 0.93) && (forward[2] < 0.94)) {
+			VectorMA(start, 18.8, forward, start);
+			VectorMA(start, 1.3, up, start);
+		} else if ((forward[2] >= 0.94) && (forward[2] < 0.95)) {
+			VectorMA(start, 19, forward, start);
+			VectorMA(start, 1, up, start);
+		} else if ((forward[2] >= 0.95) && (forward[2] < 0.96)) {
+			VectorMA(start, 19.2, forward, start);
+			VectorMA(start, 0.7, up, start);
+		} else if ((forward[2] >= 0.96) && (forward[2] < 0.97)) {
+			VectorMA(start, 19.4, forward, start);
+			VectorMA(start, 0.4, up, start);
+		} else if ((forward[2] >= 0.97) && (forward[2] < 0.98)) {
+			VectorMA(start, 19.6, forward, start);
+			VectorMA(start, -0.2, up, start);
+		} else if ((forward[2] >= 0.98) && (forward[2] < 0.99)) {
+			VectorMA(start, 19.8, forward, start);
+			VectorMA(start, -0.6, up, start);
+		} else if ((forward[2] >= 0.99) && (forward[2] <= 1)) {
+			VectorMA(start, 20, forward, start);
+			VectorMA(start, -1, up, start);
+		}
+
+		VectorCopy(start, shell->s.origin);
+		VectorCopy(start, shell->old_origin);
+		if (fix == 0)		// we want some velocity on those center handed ones
+			fix = 1;
+		if (self->client->curr_weap == SNIPER_NUM)
+			VectorMA(shell->velocity, fix * (-35 + random() * -60), right, shell->velocity);
+		else if (self->client->curr_weap == DUAL_NUM) {
+			if (self->client->pers.hand == LEFT_HANDED)
+				VectorMA(shell->velocity,
+					 (toggle == 1 ? 1 : -1) * (35 + random() * 60), right, shell->velocity);
+			else
+				VectorMA(shell->velocity,
+					 (toggle == 1 ? -1 : 1) * (35 + random() * 60), right, shell->velocity);
+		} else
+			VectorMA(shell->velocity, fix * (35 + random() * 60), right, shell->velocity);
+		VectorMA(shell->avelocity, 500, right, shell->avelocity);
+		if (self->client->curr_weap == SNIPER_NUM)
+			VectorMA(shell->velocity, 60 + 40, up, shell->velocity);
 		else
-			VectorMA(start, ((toggle == 1) ? -4 : 4), right, start);
-		VectorMA(start, 6, forward, start);
-		VectorMA(start, -9, up, start);
+			VectorMA(shell->velocity, 60 + random() * 90, up, shell->velocity);
 
-	}
-
-	if ((forward[2] >= -1) && (forward[2] < -0.99)) {
-		VectorMA(start, 5, forward, start);
-		VectorMA(start, -0.5, up, start);
-	} else if ((forward[2] >= -0.99) && (forward[2] < -0.98)) {
-		VectorMA(start, 5, forward, start);
-		VectorMA(start, -.1, up, start);
-	} else if ((forward[2] >= -0.98) && (forward[2] < -0.97)) {
-		VectorMA(start, 5.1, forward, start);
-		VectorMA(start, 0.3, up, start);
-	} else if ((forward[2] >= -0.97) && (forward[2] < -0.96)) {
-		VectorMA(start, 5.2, forward, start);
-		VectorMA(start, 0.7, up, start);
-	} else if ((forward[2] >= -0.96) && (forward[2] < -0.95)) {
-		VectorMA(start, 5.2, forward, start);
-		VectorMA(start, 1.1, up, start);
-	} else if ((forward[2] >= -0.95) && (forward[2] < -0.94)) {
-		VectorMA(start, 5.3, forward, start);
-		VectorMA(start, 1.5, up, start);
-	} else if ((forward[2] >= -0.94) && (forward[2] < -0.93)) {
-		VectorMA(start, 5.4, forward, start);
-		VectorMA(start, 1.9, up, start);
-	} else if ((forward[2] >= -0.93) && (forward[2] < -0.92)) {
-		VectorMA(start, 5.5, forward, start);
-		VectorMA(start, 2.3, up, start);
-	} else if ((forward[2] >= -0.92) && (forward[2] < -0.91)) {
-		VectorMA(start, 5.6, forward, start);
-		VectorMA(start, 2.7, up, start);
-	} else if ((forward[2] >= -0.91) && (forward[2] < -0.9)) {
-		VectorMA(start, 5.7, forward, start);
-		VectorMA(start, 3.1, up, start);
-	} else if ((forward[2] >= -0.9) && (forward[2] < -0.85)) {
-		VectorMA(start, 5.8, forward, start);
-		VectorMA(start, 3.5, up, start);
-	} else if ((forward[2] >= -0.85) && (forward[2] < -0.8)) {
-		VectorMA(start, 6, forward, start);
-		VectorMA(start, 4, up, start);
-	} else if ((forward[2] >= -0.8) && (forward[2] < -0.6)) {
-		VectorMA(start, 6.5, forward, start);
-		VectorMA(start, 4.5, up, start);
-	} else if ((forward[2] >= -0.6) && (forward[2] < -0.4)) {
-		VectorMA(start, 8, forward, start);
-		VectorMA(start, 5.5, up, start);
-	} else if ((forward[2] >= -0.4) && (forward[2] < -0.2)) {
-		VectorMA(start, 9.5, forward, start);
-		VectorMA(start, 6, up, start);
-	} else if ((forward[2] >= -0.2) && (forward[2] < 0)) {
-		VectorMA(start, 11, forward, start);
-		VectorMA(start, 6.5, up, start);
-	} else if ((forward[2] >= 0) && (forward[2] < 0.2)) {
-		VectorMA(start, 12, forward, start);
-		VectorMA(start, 7, up, start);
-	} else if ((forward[2] >= 0.2) && (forward[2] < 0.4)) {
-		VectorMA(start, 14, forward, start);
-		VectorMA(start, 6.5, up, start);
-	} else if ((forward[2] >= 0.4) && (forward[2] < 0.6)) {
-		VectorMA(start, 16, forward, start);
-		VectorMA(start, 6, up, start);
-	} else if ((forward[2] >= 0.6) && (forward[2] < 0.8)) {
-		VectorMA(start, 18, forward, start);
-		VectorMA(start, 5, up, start);
-	} else if ((forward[2] >= 0.8) && (forward[2] < 0.85)) {
-		VectorMA(start, 18, forward, start);
-		VectorMA(start, 4, up, start);
-	} else if ((forward[2] >= 0.85) && (forward[2] < 0.9)) {
-		VectorMA(start, 18, forward, start);
-		VectorMA(start, 2.5, up, start);
-	} else if ((forward[2] >= 0.9) && (forward[2] < 0.91)) {
-		VectorMA(start, 18.2, forward, start);
-		VectorMA(start, 2.2, up, start);
-	} else if ((forward[2] >= 0.91) && (forward[2] < 0.92)) {
-		VectorMA(start, 18.4, forward, start);
-		VectorMA(start, 1.9, up, start);
-	} else if ((forward[2] >= 0.92) && (forward[2] < 0.93)) {
-		VectorMA(start, 18.6, forward, start);
-		VectorMA(start, 1.6, up, start);
-	} else if ((forward[2] >= 0.93) && (forward[2] < 0.94)) {
-		VectorMA(start, 18.8, forward, start);
-		VectorMA(start, 1.3, up, start);
-	} else if ((forward[2] >= 0.94) && (forward[2] < 0.95)) {
-		VectorMA(start, 19, forward, start);
-		VectorMA(start, 1, up, start);
-	} else if ((forward[2] >= 0.95) && (forward[2] < 0.96)) {
-		VectorMA(start, 19.2, forward, start);
-		VectorMA(start, 0.7, up, start);
-	} else if ((forward[2] >= 0.96) && (forward[2] < 0.97)) {
-		VectorMA(start, 19.4, forward, start);
-		VectorMA(start, 0.4, up, start);
-	} else if ((forward[2] >= 0.97) && (forward[2] < 0.98)) {
-		VectorMA(start, 19.6, forward, start);
-		VectorMA(start, -0.2, up, start);
-	} else if ((forward[2] >= 0.98) && (forward[2] < 0.99)) {
-		VectorMA(start, 19.8, forward, start);
-		VectorMA(start, -0.6, up, start);
-	} else if ((forward[2] >= 0.99) && (forward[2] <= 1)) {
-		VectorMA(start, 20, forward, start);
-		VectorMA(start, -1, up, start);
-	}
-
-	VectorCopy(start, shell->s.origin);
-	VectorCopy(start, shell->old_origin);
-	if (fix == 0)		// we want some velocity on those center handed ones
-		fix = 1;
-	if (self->client->curr_weap == SNIPER_NUM)
-		VectorMA(shell->velocity, fix * (-35 + random() * -60), right, shell->velocity);
-	else if (self->client->curr_weap == DUAL_NUM) {
-		if (self->client->pers.hand == LEFT_HANDED)
-			VectorMA(shell->velocity,
-				 (toggle == 1 ? 1 : -1) * (35 + random() * 60), right, shell->velocity);
+		if( (self->client->curr_weap == M3_NUM) || (self->client->curr_weap == HC_NUM) )
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris2.md2");
+		else if( (self->client->curr_weap == SNIPER_NUM) || (self->client->curr_weap == M4_NUM) )
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris3.md2");
 		else
-			VectorMA(shell->velocity,
-				 (toggle == 1 ? -1 : 1) * (35 + random() * 60), right, shell->velocity);
-	} else
-		VectorMA(shell->velocity, fix * (35 + random() * 60), right, shell->velocity);
-	VectorMA(shell->avelocity, 500, right, shell->avelocity);
-	if (self->client->curr_weap == SNIPER_NUM)
-		VectorMA(shell->velocity, 60 + 40, up, shell->velocity);
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris.md2");
+
+		shell->typeNum = self->client->curr_weap;
+	}
 	else
-		VectorMA(shell->velocity, 60 + random() * 90, up, shell->velocity);
+	{
+		AngleVectors(self->s.angles, forward, right, up);
+		
+		VectorMA(start, -8, forward, shell->s.origin);
+		VectorMA(shell->s.origin, 8, up, shell->s.origin);
+		
+		VectorMA(shell->velocity, 20 + random() * 64, right, shell->velocity);
+		VectorMA(shell->velocity, 20 + random() * 64, up, shell->velocity);
+
+		if( (toggle == MOD_M3) || (toggle == MOD_HC) )
+		{
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris2.md2");
+			shell->typeNum = M3_NUM;
+		}
+		else if( (toggle == MOD_SNIPER) || (toggle == MOD_M4) )
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris3.md2");
+		else
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris.md2");
+		shell->typeNum = MK23_NUM;
+	}
 
 	shell->movetype = MOVETYPE_BOUNCE;
 	shell->solid = SOLID_BBOX;
-
-	if( (self->client->curr_weap == M3_NUM) || (self->client->curr_weap == HC_NUM) )
-		shell->s.modelindex = gi.modelindex("models/weapons/shell/tris2.md2");
-	else if( (self->client->curr_weap == SNIPER_NUM) || (self->client->curr_weap == M4_NUM) )
-		shell->s.modelindex = gi.modelindex("models/weapons/shell/tris3.md2");
-	else
-		shell->s.modelindex = gi.modelindex("models/weapons/shell/tris.md2");
 
 	r = random();
 	if (r < 0.1)
@@ -909,10 +935,6 @@ void EjectShell(edict_t * self, vec3_t start, int toggle)
 	shell->think = shelllife->value ? ShellDie : PlaceHolder;
 	shell->classname = "shell";
 	shell->freetime = level.time;  // Used to determine oldest spawned shell.
-
-	// SPAQ
-	shell->typeNum = self->client->curr_weap;
-	// SPAQ
 
 	gi.linkentity(shell);
 }

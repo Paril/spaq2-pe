@@ -135,6 +135,7 @@
     <ClCompile Include="a_xmenu.c" />
     <ClCompile Include="a_xvote.c" />
     <ClCompile Include="cgf_sfx_glass.c" />
+    <ClCompile Include="col_main.c" />
     <ClCompile Include="g_ai.c" />
     <ClCompile Include="g_chase.c" />
     <ClCompile Include="g_cmds.c" />
@@ -206,6 +207,7 @@
     <ClInclude Include="a_xmenu.h" />
     <ClInclude Include="a_xvote.h" />
     <ClInclude Include="cgf_sfx_glass.h" />
+    <ClInclude Include="col_main.h" />
     <ClInclude Include="g_grapple.h" />
     <ClInclude Include="g_local.h" />
     <ClInclude Include="game.h" />

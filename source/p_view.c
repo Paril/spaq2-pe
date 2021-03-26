@@ -1000,7 +1000,7 @@ void G_SetClientEvent (edict_t * ent)
 		// SPAQ
 			ent->s.event = EV_FOOTSTEP;
 		// SPAQ
-			PlayerNoise(ent, ent->s.origin, PNOISE_SELF);
+			PlayerNoise(ent, ent->s.origin, PNOISE_IMPACT);
 		}
 		// SPAQ
 	}

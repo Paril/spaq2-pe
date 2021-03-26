@@ -1543,9 +1543,9 @@ world_model_flags int               copied to 'ent->s.effects' (see s.effects fo
   GRENADE_NUM}
   ,
 
-/* weapon_grapple (.3 .3 1) (-16 -16 -16) (16 16 16)^M
+/* weapon_grapple (.3 .3 1) (-16 -16 -16) (16 16 16)
 
-always owned, never in the world^M
+always owned, never in the world
 
 */
 	{

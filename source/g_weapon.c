@@ -93,7 +93,7 @@ This is an internal support routine used for bullet/pellet based weapons.
 */
 static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick, int te_impact, int hspread, int vspread, int mod)
 {
-	trace_t tr;
+	trace_precise_t tr;
 	vec3_t dir, forward, right, up, end;
 	float r, u;
 	vec3_t water_start;
@@ -105,9 +105,9 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 	// SPAQ
 
 	PRETRACE ();
-	tr = gi.trace (self->s.origin, NULL, NULL, start, self, MASK_SHOT);
+	tr = Col_PreciseTrace(self->s.origin, start, self, MASK_SHOT);
 	POSTTRACE ();
-	if (!(tr.fraction < 1.0))
+	if (!(tr.tr.fraction < 1.0))
 	{
 		vectoangles (aimdir, dir);
 		AngleVectors (dir, forward, right, up);
@@ -126,7 +126,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 		}
 
 		PRETRACE();
-		tr = gi.trace (start, NULL, NULL, end, self, content_mask);
+		tr = Col_PreciseTrace (start, end, self, content_mask);
 		POSTTRACE();
 
 		// SPAQ
@@ -135,7 +135,7 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 			gi.WriteByte(svc_temp_entity);
 			gi.WriteByte(TE_BUBBLETRAIL);
 			gi.WritePosition(start);
-			gi.WritePosition(tr.endpos);
+			gi.WritePosition(tr.tr.endpos);
 			gi.multicast(start, MULTICAST_PVS);
 		}
 		// SPAQ
@@ -143,39 +143,39 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 		// glass fx
 		// catch case of firing thru one or breakable glasses
 		// SPAQ
-		while (CGF_SFX_IsBreakableGlassEnabled() && (tr.fraction < 1.0) && (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66))
+		while (CGF_SFX_IsBreakableGlassEnabled() && (tr.tr.fraction < 1.0) && (tr.tr.surface->flags & (SURF_TRANS33|SURF_TRANS66))
 		// SPAQ
-			&& tr.ent && !Q_stricmp(tr.ent->classname, "func_explosive"))
+			&& tr.tr.ent && !Q_stricmp(tr.tr.ent->classname, "func_explosive"))
 		{
 			// break glass  
-			CGF_SFX_ShootBreakableGlass (tr.ent, self, &tr, mod);
+			CGF_SFX_ShootBreakableGlass (tr.tr.ent, self, &tr, mod);
 			// continue trace from current endpos to start
 			PRETRACE();
-			tr = gi.trace (tr.endpos, NULL, NULL, end, tr.ent, content_mask);
+			tr = Col_PreciseTrace (tr.tr.endpos, end, tr.tr.ent, content_mask);
 			POSTTRACE();
 		}
 		// ---
 
 		// see if we hit water
-		if (tr.contents & MASK_WATER)
+		if (tr.tr.contents & MASK_WATER)
 		{
 			int color;
 
 			water = true;
-			VectorCopy (tr.endpos, water_start);
+			VectorCopy (tr.tr.endpos, water_start);
 
-			if (!VectorCompare(start, tr.endpos))
+			if (!VectorCompare(start, tr.tr.endpos))
 			{
-				if (tr.contents & CONTENTS_WATER)
+				if (tr.tr.contents & CONTENTS_WATER)
 				{
-					if (strcmp(tr.surface->name, "*brwater") == 0)
+					if (strcmp(tr.tr.surface->name, "*brwater") == 0)
 						color = SPLASH_BROWN_WATER;
 					else
 						color = SPLASH_BLUE_WATER;
 				}
-				else if (tr.contents & CONTENTS_SLIME)
+				else if (tr.tr.contents & CONTENTS_SLIME)
 					color = SPLASH_SLIME;
-				else if (tr.contents & CONTENTS_LAVA)
+				else if (tr.tr.contents & CONTENTS_LAVA)
 					color = SPLASH_LAVA;
 				else
 					color = SPLASH_UNKNOWN;
@@ -185,10 +185,10 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 					gi.WriteByte(svc_temp_entity);
 					gi.WriteByte(TE_SPLASH);
 					gi.WriteByte(8);
-					gi.WritePosition(tr.endpos);
-					gi.WriteDir(tr.plane.normal);
+					gi.WritePosition(tr.tr.endpos);
+					gi.WriteDir(tr.tr.plane.normal);
 					gi.WriteByte(color);
-					gi.multicast(tr.endpos, MULTICAST_PVS);
+					gi.multicast(tr.tr.endpos, MULTICAST_PVS);
 				}
 
 				// change bullet's course when it enters water
@@ -204,36 +204,36 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 
 			// re-trace ignoring water this time
 			PRETRACE();
-			tr = gi.trace(water_start, NULL, NULL, end, self, MASK_SHOT);
+			tr = Col_PreciseTrace(water_start, end, self, MASK_SHOT);
 			POSTTRACE();
 		}
 	}
 
 	// send gun puff / flash
-	if (!((tr.surface) && (tr.surface->flags & SURF_SKY)))
+	if (!((tr.tr.surface) && (tr.tr.surface->flags & SURF_SKY)))
 	{
-		if (tr.fraction < 1.0)
+		if (tr.tr.fraction < 1.0)
 		{
-			if (tr.ent->takedamage)
+			if (tr.tr.ent->takedamage)
 			{
-				T_Damage(tr.ent, self, self, aimdir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_BULLET, mod);
+				T_Damage(tr.tr.ent, self, self, aimdir, tr.tr.endpos, tr.tr.plane.normal, damage, kick, Col_EncodeDamage(DAMAGE_BULLET, tr.part), mod);
 			}
 			else
 			{
 				if (mod != MOD_M3 && mod != MOD_HC) {
-					AddDecal(self, &tr);
+					AddDecal(self, &tr.tr);
 				}
 
-				if (strncmp(tr.surface->name, "sky", 3) != 0)
+				if (strncmp(tr.tr.surface->name, "sky", 3) != 0)
 				{
 					gi.WriteByte(svc_temp_entity);
 					gi.WriteByte(te_impact);
-					gi.WritePosition (tr.endpos);
-					gi.WriteDir(tr.plane.normal);
-					gi.multicast(tr.endpos, MULTICAST_PVS);
+					gi.WritePosition (tr.tr.endpos);
+					gi.WriteDir(tr.tr.plane.normal);
+					gi.multicast(tr.tr.endpos, MULTICAST_PVS);
 
 					if (self->client)
-						PlayerNoise(self, tr.endpos, PNOISE_IMPACT);
+						PlayerNoise(self, tr.tr.endpos, PNOISE_IMPACT);
 				}
 			}
 		}
@@ -244,24 +244,24 @@ static void fire_lead (edict_t *self, vec3_t start, vec3_t aimdir, int damage, i
 	{
 		vec3_t pos;
 
-		VectorSubtract (tr.endpos, water_start, dir);
+		VectorSubtract (tr.tr.endpos, water_start, dir);
 		VectorNormalize (dir);
-		VectorMA (tr.endpos, -2, dir, pos);
+		VectorMA (tr.tr.endpos, -2, dir, pos);
 		if (gi.pointcontents(pos) & MASK_WATER) {
-			VectorCopy (pos, tr.endpos);
+			VectorCopy (pos, tr.tr.endpos);
 		} else {
 			PRETRACE();
-			tr = gi.trace(pos, NULL, NULL, water_start, tr.ent, MASK_WATER);
+			tr = Col_PreciseTrace(pos, water_start, tr.tr.ent, MASK_WATER);
 			POSTTRACE();
 		}
 
-		VectorAdd(water_start, tr.endpos, pos);
+		VectorAdd(water_start, tr.tr.endpos, pos);
 		VectorScale(pos, 0.5, pos);
 
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(TE_BUBBLETRAIL);
 		gi.WritePosition(water_start);
-		gi.WritePosition(tr.endpos);
+		gi.WritePosition(tr.tr.endpos);
 		gi.multicast(pos, MULTICAST_PVS);
 	}
 }

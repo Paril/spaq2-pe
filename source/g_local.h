@@ -289,6 +289,10 @@
 #include	"tng_jump.h"
 #include	"g_grapple.h"
 
+// SPAQ
+#include	"col_main.h"
+// SPAQ
+
 #define		getEnt(entnum)	(edict_t *)((char *)globals.edicts + (globals.edict_size * entnum))	//AQ:TNG Slicer - This was missing
 #define		GAMEVERSION			"action"	// the "gameversion" client command will print this plus compile date
 
@@ -2143,6 +2147,8 @@ struct edict_s
 	int			bleeddelay;			// how long until we bleed again
 	float		head_height;
 	int			bandage_time;
+
+	entity_collision_t	collision;
 	// SPAQ
 };
 
