@@ -169,6 +169,9 @@ static g_collision_data_t *Col_Load(const char *filename)
 
 	FILE *fp = fopen(name, "rb");
 
+	if (!fp)
+		return NULL;
+
 	dmd2header_t header;
 	fread(&header, sizeof(header), 1, fp);
 

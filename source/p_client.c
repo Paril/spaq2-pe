@@ -2491,7 +2491,7 @@ void PutClientInServer(edict_t * ent)
 	ent->s.modelindex = 255;	// will use the skin specified model
 
 	// SPAQ
-	if (!deathmatch->value)
+	if (!deathmatch->value || dm_collision->value)
 	{
 		// SPAQ
 		Col_SetModel(ent, NULL, "players/male/tris.md2");
@@ -2528,7 +2528,7 @@ void PutClientInServer(edict_t * ent)
 	}
 	else {
 		going_observer = ent->client->pers.spectator;
-		if (dm_choose->value && !ent->client->pers.dm_selected)
+		if ((gameSettings & GS_WEAPONCHOOSE) && !ent->client->pers.dm_selected)
 			going_observer = 1;
 	}
 
@@ -2634,7 +2634,7 @@ void ClientBeginDeathmatch(edict_t * ent)
 				ent->client->pers.menu_shown = 0;
 		}
 
-		if (!dm_choose->value && !warmup->value) {
+		if (!(gameSettings & GS_WEAPONCHOOSE) && !warmup->value) {
 			if (!ent->client->pers.chosenWeapon) {
 				if (WPF_ALLOWED(MP5_NUM))
 					ent->client->pers.chosenWeapon = GET_ITEM(MP5_NUM);
@@ -2687,7 +2687,7 @@ void ClientBeginDeathmatch(edict_t * ent)
 	if (level.intermission_framenum) {
 		MoveClientToIntermission(ent);
 	} else {
-		if (!teamplay->value && !dm_choose->value) {	//FB 5/31/99
+		if (!teamplay->value && !(gameSettings & GS_WEAPONCHOOSE)) {	//FB 5/31/99
 			// send effect
 			gi.WriteByte(svc_muzzleflash);
 			gi.WriteShort(ent - g_edicts);
@@ -3329,14 +3329,14 @@ void ClientBeginServerFrame(edict_t * ent)
 	}
 
 	// show team or weapon menu immediately when connected
-	if (auto_menu->value && ent->client->layout != LAYOUT_MENU && !client->pers.menu_shown && (teamplay->value || dm_choose->value)) {
+	if (auto_menu->value && ent->client->layout != LAYOUT_MENU && !client->pers.menu_shown && (teamplay->value || (gameSettings & GS_WEAPONCHOOSE))) {
 		Cmd_Inven_f( ent );
 	}
 
 	if (!teamplay->value)
 	{
 		// force spawn when weapon and item selected in dm
-		if (!ent->client->pers.spectator && dm_choose->value && !client->pers.dm_selected) {
+		if (!ent->client->pers.spectator && (gameSettings & GS_WEAPONCHOOSE) && !client->pers.dm_selected) {
 			if (client->pers.chosenWeapon && (client->pers.chosenItem || itm_flags->value == 0)) {
 				client->pers.dm_selected = 1;
 

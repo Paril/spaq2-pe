@@ -360,6 +360,7 @@ void InitGame( void )
 	coop = gi.cvar( "coop", "0", CVAR_LATCH );
 	skill = gi.cvar( "skill", "1", CVAR_LATCH );
 	quickreload = gi.cvar( "quickreload", "1", CVAR_LATCH );
+	dm_collision = gi.cvar( "dm_collision", "0", CVAR_LATCH);
 	// SPAQ
 
 	dmflags = gi.cvar( "dmflags", "0", CVAR_SERVERINFO );

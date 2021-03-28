@@ -2121,6 +2121,9 @@ void weapon_grenade_fire(edict_t* ent, qboolean held)
 
 int AdjustSpread(edict_t* ent, int spread)
 {
+	if (true)
+		spread /= 10;
+
 	int running = 225;		// minimum speed for running
 	int walking = 10;		// minimum speed for walking
 	int laser = 0;
@@ -2595,10 +2598,21 @@ void Weapon_M4(edict_t* ent)
 	Weapon_Generic(ent, 10, 12, 39, 44, 63, 71, pause_frames, fire_frames, M4_Fire);
 }
 
+static void spread_circle(float r, int num_segments, vec2_t *points) 
+{ 
+	for (int ii = 0; ii < num_segments; ii++) 
+	{ 
+		float theta = 2.0f * M_PI * ii / (float)num_segments;//get the current angle 
+
+		points[ii][0] = r * cosf(theta);
+		points[ii][1] = r * sinf(theta);
+	}
+}
+
 void M3_Fire(edict_t* ent)
 {
 	vec3_t start;
-	vec3_t forward, right;
+	vec3_t forward, right, up;
 	vec3_t offset;
 	int damage = 17;		//actionquake is 15 standard
 	int kick = 20;
@@ -2616,7 +2630,7 @@ void M3_Fire(edict_t* ent)
 	}
 
 
-	AngleVectors(ent->client->v_angle, forward, right, NULL);
+	AngleVectors(ent->client->v_angle, forward, right, up);
 
 	VectorScale(forward, -2, ent->client->kick_origin);
 	ent->client->kick_angles[0] = -2;
@@ -2650,8 +2664,28 @@ void M3_Fire(edict_t* ent)
 	setFFState(ent);
 	InitTookDamage();	//FB 6/3/99
 
-	fire_shotgun(ent, start, forward, damage, kick, 800, 800,
-		12 /*DEFAULT_DEATHMATCH_SHOTGUN_COUNT */, MOD_M3);
+	if (true)
+	{
+		static vec2_t m3_pattern[12] = {
+			{0.00000000, 0.00000000}
+		};
+		
+		spread_circle(0.07f, 4, m3_pattern + 1);
+		spread_circle(0.12f, 7, m3_pattern + 5);
+
+		int spread = AdjustSpread(ent, 10) - 1;
+
+		if (spread > 0)
+		{
+			VectorMA(forward, crandom() * spread * 0.01, right, forward);
+			VectorMA(forward, crandom() * spread * 0.01, up, forward);
+		}
+
+		fire_shotgun_sp(ent, start, forward, damage, kick, MOD_M3, m3_pattern, sizeof(m3_pattern) / sizeof(*m3_pattern));
+	}
+	else
+		fire_shotgun(ent, start, forward, damage, kick, 800, 800,
+			12 /*DEFAULT_DEATHMATCH_SHOTGUN_COUNT */, MOD_M3);
 
 	Stats_AddShot(ent, MOD_M3);
 
@@ -2680,7 +2714,7 @@ void Weapon_M3(edict_t* ent)
 void HC_Fire(edict_t* ent)
 {
 	vec3_t start;
-	vec3_t forward, right;
+	vec3_t forward, right, up;
 	vec3_t offset;
 	vec3_t v;
 	int sngl_damage = 15;
@@ -2694,7 +2728,7 @@ void HC_Fire(edict_t* ent)
 	else
 		height = 0;
 
-	AngleVectors(ent->client->v_angle, forward, right, NULL);
+	AngleVectors(ent->client->v_angle, forward, right, up);
 
 	VectorScale(forward, -2, ent->client->kick_origin);
 	ent->client->kick_angles[0] = -2;
@@ -2715,6 +2749,24 @@ void HC_Fire(edict_t* ent)
 	setFFState(ent);
 	InitTookDamage();	//FB 6/3/99
 
+	static vec2_t hc_pattern[17] = {
+		{ 0, 0 }
+	};
+		
+	spread_circle(0.12f, 8, hc_pattern + 1);
+	spread_circle(0.24f, 8, hc_pattern + 9);
+
+	if (true)
+	{
+		int spread = AdjustSpread(ent, 10) - 1;
+
+		if (spread > 0)
+		{
+			VectorMA(forward, crandom() * spread * 0.025, right, forward);
+			VectorMA(forward, crandom() * spread * 0.025, up, forward);
+		}
+	}
+
 	if (ent->client->pers.hc_mode)
 	{
 		// Single barrel.
@@ -2726,7 +2778,10 @@ void HC_Fire(edict_t* ent)
 		AngleVectors(v, forward, NULL, NULL);
 
 		//half the spread, half the pellets?
-		fire_shotgun(ent, start, forward, sngl_damage, sngl_kick, DEFAULT_SHOTGUN_HSPREAD * 2.5, DEFAULT_SHOTGUN_VSPREAD * 2.5, 34 / 2, MOD_HC);
+		if (true)
+			fire_shotgun_sp(ent, start, forward, sngl_damage, sngl_kick, MOD_HC, hc_pattern, sizeof(hc_pattern) / sizeof(*hc_pattern));
+		else
+			fire_shotgun(ent, start, forward, sngl_damage, sngl_kick, DEFAULT_SHOTGUN_HSPREAD * 2.5, DEFAULT_SHOTGUN_VSPREAD * 2.5, 34 / 2, MOD_HC);
 
 		ent->client->cannon_rds--;
 	}
@@ -2736,11 +2791,17 @@ void HC_Fire(edict_t* ent)
 
 		v[YAW] = ent->client->v_angle[YAW] - 5;
 		AngleVectors(v, forward, NULL, NULL);
-		fire_shotgun(ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD * 4, DEFAULT_SHOTGUN_VSPREAD * 4, 34 / 2, MOD_HC);
+		if (true)
+			fire_shotgun_sp(ent, start, forward, sngl_damage, sngl_kick, MOD_HC, hc_pattern, sizeof(hc_pattern) / sizeof(*hc_pattern));
+		else
+			fire_shotgun(ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD * 4, DEFAULT_SHOTGUN_VSPREAD * 4, 34 / 2, MOD_HC);
 
 		v[YAW] = ent->client->v_angle[YAW] + 5;
 		AngleVectors(v, forward, NULL, NULL);
-		fire_shotgun(ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD * 4, DEFAULT_SHOTGUN_VSPREAD * 4 /* was *5 here */, 34 / 2, MOD_HC);
+		if (true)
+			fire_shotgun_sp(ent, start, forward, sngl_damage, sngl_kick, MOD_HC, hc_pattern, sizeof(hc_pattern) / sizeof(*hc_pattern));
+		else
+			fire_shotgun(ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD * 4, DEFAULT_SHOTGUN_VSPREAD * 4 /* was *5 here */, 34 / 2, MOD_HC);
 
 		ent->client->cannon_rds -= 2;
 	}

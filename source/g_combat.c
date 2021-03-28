@@ -588,6 +588,32 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 	if (targ->client || ((targ->svflags & SVF_MONSTER) && !(targ->monsterinfo.aiflags & AI_NOSTEP)))
 	// SPAQ
 	{
+		if (part == COLLISION_PART_HEAD)
+			head_success = 1;
+		else if (part == COLLISION_PART_NONE)
+		{
+			z_rel = point[2] - targ->s.origin[2];
+			from_top = targ_maxs2 - z_rel;
+			if (from_top < 0.0)	//FB 6/1/99
+				from_top = 0.0;	//Slightly negative values were being handled wrong
+
+			float head_height = targ->head_height ? targ->head_height : HEAD_HEIGHT;
+
+			if (from_top < 2 * head_height)
+			{
+				vec3_t new_point;
+				VerifyHeadShot(point, dir, head_height, new_point);
+				VectorSubtract(new_point, targ->s.origin, new_point);
+				//gi.cprintf(attacker, PRINT_HIGH, "z: %d y: %d x: %d\n", (int)(targ_maxs2 - new_point[2]),(int)(new_point[1]) , (int)(new_point[0]) );
+
+				if ((targ_maxs2 - new_point[2]) < head_height
+					&& (abs (new_point[1])) < head_height * .8
+					&& (abs (new_point[0])) < head_height * .8)
+				{
+					head_success = 1;
+				}
+			}
+		}
 
 		switch (mod) {
 		case MOD_MK23:
@@ -606,33 +632,6 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 		case MOD_KNIFE_THROWN: {
 			bleeding = 1;
 			instant_dam = 0;
-
-			if (part == COLLISION_PART_HEAD)
-				head_success = 1;
-			else if (part == COLLISION_PART_NONE)
-			{
-				z_rel = point[2] - targ->s.origin[2];
-				from_top = targ_maxs2 - z_rel;
-				if (from_top < 0.0)	//FB 6/1/99
-					from_top = 0.0;	//Slightly negative values were being handled wrong
-
-				float head_height = targ->head_height ? targ->head_height : HEAD_HEIGHT;
-
-				if (from_top < 2 * head_height)
-				{
-					vec3_t new_point;
-					VerifyHeadShot(point, dir, head_height, new_point);
-					VectorSubtract(new_point, targ->s.origin, new_point);
-					//gi.cprintf(attacker, PRINT_HIGH, "z: %d y: %d x: %d\n", (int)(targ_maxs2 - new_point[2]),(int)(new_point[1]) , (int)(new_point[0]) );
-
-					if ((targ_maxs2 - new_point[2]) < head_height
-						&& (abs (new_point[1])) < head_height * .8
-						&& (abs (new_point[0])) < head_height * .8)
-					{
-						head_success = 1;
-					}
-				}
-			}
 
 			if (head_success)
 			{
@@ -860,6 +859,16 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			//shotgun damage report stuff
 			if (client)
 				client->took_damage++;
+
+			if (true && (mod == MOD_M3 || mod == MOD_HC))
+			{
+				if (head_success)
+					damage *= 1.6f;
+				else if ((part == COLLISION_PART_NONE && z_rel < STOMACH_DAMAGE) || part == COLLISION_PART_STOMACH)
+					damage *= 1.2f;
+				else if ((part == COLLISION_PART_NONE && z_rel < LEG_DAMAGE) || part == COLLISION_PART_LEG)
+					damage *= 0.8f;
+			}
 
 			bleeding = 1;
 			instant_dam = 0;

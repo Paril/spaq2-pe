@@ -974,7 +974,18 @@ extern edict_t *g_edicts;
 #define LLOFS(x) (ptrdiff_t)&(((level_locals_t *)0)->x)
 #define CLOFS(x) (ptrdiff_t)&(((gclient_t *)0)->x)
 
-#define random()        ((rand () & 0x7fff) / ((float)0x7fff))
+#ifndef NO_MT
+unsigned int mt_rand(void);
+void mt_srand(unsigned int seed);
+
+#define rand mt_rand
+#define srand mt_srand
+
+#undef RAND_MAX
+#define RAND_MAX 0xFFFFFFFF
+#endif
+
+#define random()        ((float)(rand () & RAND_MAX) / RAND_MAX)
 #define crandom()       (2.0 * (random() - 0.5))
 
 #define DMFLAGS(x)     (((int)dmflags->value & x) != 0)
@@ -985,6 +996,7 @@ extern cvar_t *deathmatch;
 extern cvar_t *coop;
 extern cvar_t *skill;
 extern cvar_t *quickreload;
+extern cvar_t *dm_collision;
 // SPAQ
 extern cvar_t *dmflags;
 extern cvar_t *needpass;
@@ -1305,12 +1317,17 @@ void SP_misc_teleporter_dest(edict_t* ent);
 //
 // g_weapon.c
 //
+typedef vec_t vec2_t[2];
+
 void ThrowDebris (edict_t * self, char *modelname, float speed,
 		  vec3_t origin);
 void fire_bullet (edict_t * self, vec3_t start, vec3_t aimdir, int damage,
 		  int kick, int hspread, int vspread, int mod);
 void fire_shotgun (edict_t * self, vec3_t start, vec3_t aimdir, int damage,
 		   int kick, int hspread, int vspread, int count, int mod);
+
+void fire_shotgun_sp(edict_t *self, vec3_t start, vec3_t aimdir, int damage,
+		   int kick, int mod, const vec2_t *pattern, size_t num_pattern);
 //SLIC2 changed argument name hyper to hyperb
 void fire_blaster (edict_t * self, vec3_t start, vec3_t aimdir, int damage,
 		   int speed, int effect, qboolean hyperb);
