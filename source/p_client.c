@@ -2377,7 +2377,6 @@ void PutClientInServer(edict_t * ent)
 	// SPAQ
 	if (coop->value)
 	{
-		int			n;
 
 		resp = client->resp;
 

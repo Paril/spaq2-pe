@@ -710,6 +710,8 @@ void EjectShell(edict_t * self, vec3_t start, int toggle)
 	shell = G_Spawn();
 	++shells;
 
+	if (self->client)
+	{
 	AngleVectors(self->client->v_angle, forward, right, up);
 
 	if (self->client->pers.hand == LEFT_HANDED) {
@@ -873,15 +875,37 @@ void EjectShell(edict_t * self, vec3_t start, int toggle)
 	else
 		VectorMA(shell->velocity, 60 + random() * 90, up, shell->velocity);
 
+		if( (self->client->curr_weap == M3_NUM) || (self->client->curr_weap == HC_NUM) )
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris2.md2");
+		else if( (self->client->curr_weap == SNIPER_NUM) || (self->client->curr_weap == M4_NUM) )
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris3.md2");
+		else
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris.md2");
+
+		shell->typeNum = self->client->curr_weap;
+	}
+	else
+	{
+		AngleVectors(self->s.angles, forward, right, up);
+		
+		VectorMA(start, -8, forward, shell->s.origin);
+		VectorMA(shell->s.origin, 8, up, shell->s.origin);
+		
+		VectorMA(shell->velocity, 20 + random() * 64, right, shell->velocity);
+		VectorMA(shell->velocity, 20 + random() * 64, up, shell->velocity);
+		if( (toggle == MOD_M3) || (toggle == MOD_HC) )
+		{
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris2.md2");
+			shell->typeNum = M3_NUM;
+		}
+		else if( (toggle == MOD_SNIPER) || (toggle == MOD_M4) )
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris3.md2");
+		else
+			shell->s.modelindex = gi.modelindex("models/weapons/shell/tris.md2");
+		shell->typeNum = MK23_NUM;
+	}
 	shell->movetype = MOVETYPE_BOUNCE;
 	shell->solid = SOLID_BBOX;
-
-	if( (self->client->curr_weap == M3_NUM) || (self->client->curr_weap == HC_NUM) )
-		shell->s.modelindex = gi.modelindex("models/weapons/shell/tris2.md2");
-	else if( (self->client->curr_weap == SNIPER_NUM) || (self->client->curr_weap == M4_NUM) )
-		shell->s.modelindex = gi.modelindex("models/weapons/shell/tris3.md2");
-	else
-		shell->s.modelindex = gi.modelindex("models/weapons/shell/tris.md2");
 
 	r = random();
 	if (r < 0.1)
@@ -909,10 +933,6 @@ void EjectShell(edict_t * self, vec3_t start, int toggle)
 	shell->think = shelllife->value ? ShellDie : PlaceHolder;
 	shell->classname = "shell";
 	shell->freetime = level.time;  // Used to determine oldest spawned shell.
-
-	// SPAQ
-	shell->typeNum = self->client->curr_weap;
-	// SPAQ
 
 	gi.linkentity(shell);
 }

@@ -76,11 +76,15 @@ void monster_fire_bullet(edict_t *self, vec3_t start, vec3_t dir, int damage, in
     {
         fire_bullet_sparks(self, start, dir, damage * 2, kick, 0, 0, MOD_M4 | MOD_MONSTER);
 	    gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/m4a1fire.wav"), 1, ATTN_LOUD, 0);
+
+		EjectShell(self, start, MOD_M4);
     }
     else
     {
         fire_bullet(self, start, dir, damage, kick, 0, 0, MOD_MP5 | MOD_MONSTER);
 	    gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/mp5fire1.wav"), 1, ATTN_LOUD, 0);
+
+		EjectShell(self, start, MOD_MP5);
     }
     
     gi.WriteByte(svc_muzzleflash2);
@@ -97,11 +101,16 @@ void monster_fire_shotgun(edict_t *self, vec3_t start, vec3_t aimdir, int damage
     {
         fire_shotgun(self, start, aimdir, damage * 2, kick * 2, hspread * 2, vspread * 2, count * 2, MOD_HC | MOD_MONSTER);
 	    gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/cannon_fire.wav"), 1, ATTN_LOUD, 0);
+		
+		EjectShell(self, start, MOD_HC);
+		EjectShell(self, start, MOD_HC);
     }
     else
     {
         fire_shotgun(self, start, aimdir, damage, kick, hspread, vspread, count, MOD_M3 | MOD_MONSTER);
 	    gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/shotgf1b.wav"), 1, ATTN_LOUD, 0);
+
+		EjectShell(self, start, MOD_M3);
     }
 
     gi.WriteByte(svc_muzzleflash2);
@@ -119,6 +128,8 @@ void monster_fire_blaster(edict_t *self, vec3_t start, vec3_t dir, int damage, i
         monster_setup_accuracy(self, start, (float **) &dir);
         fire_bullet_sniper(self, start, dir, damage, damage, 0, 0, MOD_SNIPER | MOD_MONSTER);
         gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/ssgfire.wav"), 1, ATTN_LOUD, 0);
+
+		EjectShell(self, start, MOD_SNIPER);
     }
     else
     {
@@ -129,6 +140,7 @@ void monster_fire_blaster(edict_t *self, vec3_t start, vec3_t dir, int damage, i
             fire_bullet(self, start, dir, damage, damage, 0, 0, MOD_MK23 | MOD_MONSTER);
             gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/mk23fire.wav"), 1, ATTN_LOUD, (float) i * 0.06f);
             dir = r;
+			EjectShell(self, start, MOD_MK23);
         }
     }
 
@@ -174,6 +186,7 @@ void monster_fire_railgun(edict_t *self, vec3_t start, vec3_t aimdir, int damage
 
     fire_bullet_sniper(self, start, aimdir, damage, damage, 0, 0, MOD_SNIPER | MOD_MONSTER);
     gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/ssgfire.wav"), 1, ATTN_LOUD, 0);
+	EjectShell(self, start, MOD_SNIPER);
 
     gi.WriteByte(svc_muzzleflash2);
     gi.WriteShort(self - g_edicts);
@@ -184,7 +197,10 @@ void monster_fire_railgun(edict_t *self, vec3_t start, vec3_t aimdir, int damage
 void monster_fire_bfg(edict_t *self, vec3_t start, vec3_t aimdir, int damage, int speed, int kick, float damage_radius, int flashtype)
 {
     monster_setup_accuracy(self, start, (float **) &aimdir);
-    //fire_bfg(self, start, aimdir, damage, speed, damage_radius);
+
+    fire_bullet_sniper(self, start, aimdir, damage, damage, 0, 0, MOD_SNIPER | MOD_MONSTER);
+    gi.sound(self, CHAN_WEAPON, gi.soundindex("weapons/ssgfire.wav"), 1, ATTN_LOUD, 0);
+	EjectShell(self, start, MOD_SNIPER);
 
     gi.WriteByte(svc_muzzleflash2);
     gi.WriteShort(self - g_edicts);

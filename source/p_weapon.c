@@ -1231,9 +1231,26 @@ Weapon_Generic(edict_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 						gi.soundindex("weapons/copen.wav"), 1, ATTN_NORM,
 						0);
 				else if (ent->client->ps.gunframe == 67)
+				{
 					gi.sound(ent, CHAN_WEAPON,
 						gi.soundindex("weapons/cout.wav"), 1, ATTN_NORM,
 						0);
+					// SPAQ
+					if (!sv_shelloff->value)
+					{
+						vec3_t result, angles, forward, right, offset;
+						VectorAdd(ent->client->v_angle, ent->client->kick_angles, angles);
+						AngleVectors(angles, forward, right, NULL);
+						VectorSet(offset, 0, 8, ent->viewheight - 8);
+						Old_ProjectSource(ent->client, ent->s.origin, offset, forward,
+							right, result);
+						EjectShell(ent, result, 0);
+
+						if (!ent->client->cannon_rds)
+							EjectShell(ent, result, 0);
+					}
+					// SPAQ
+				}
 				else if (ent->client->ps.gunframe == 76)	//61
 					gi.sound(ent, CHAN_WEAPON,
 						gi.soundindex("weapons/cin.wav"), 1, ATTN_NORM,
@@ -2742,38 +2759,6 @@ void HC_Fire(edict_t* ent)
 	//              ent->client->inventory[ent->client->ammo_index] -= 2;
 }
 
-/*
-		v[YAW]   = ent->client->v_angle[YAW] - 5;
-		v[ROLL]  = ent->client->v_angle[ROLL];
-		AngleVectors (v, forward, NULL, NULL);
-		// default hspread is 1k and default vspread is 500
-	setFFState(ent);
-		InitTookDamage();  //FB 6/3/99
-		fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD*4, DEFAULT_SHOTGUN_VSPREAD*4, 34/2, MOD_HC);
-		v[YAW]   = ent->client->v_angle[YAW] + 5;
-		AngleVectors (v, forward, NULL, NULL);
-		fire_shotgun (ent, start, forward, damage, kick, DEFAULT_SHOTGUN_HSPREAD*4, DEFAULT_SHOTGUN_VSPREAD*5, 34/2, MOD_HC);
-
-	if (llsound->value == 0)
-	  {
-		gi.sound(ent, CHAN_WEAPON, gi.soundindex("weapons/cannon_fire.wav"), 1, ATTN_LOUD, 0);
-	  }
-		// send muzzle flash
-		gi.WriteByte (svc_muzzleflash);
-		gi.WriteShort (ent-g_edicts);
-		gi.WriteByte (MZ_SSHOTGUN | is_silenced);
-		gi.multicast (ent->s.origin, MULTICAST_PVS);
-		ProduceShotgunDamageReport(ent);  //FB 6/3/99
-
-		ent->client->ps.gunframe++;
-		PlayerNoise(ent, start, PNOISE_WEAPON);
-
-	//      if (!DMFLAGS(DF_INFINITE_AMMO))
-	//              ent->client->inventory[ent->client->ammo_index] -= 2;
-
-		ent->client->cannon_rds -= 2;
-}
-*/
 // AQ2:TNG END
 
 void Weapon_HC(edict_t* ent)
@@ -3529,7 +3514,6 @@ int Knife_Fire(edict_t* ent)
 		ent->client->ps.gunframe = 64;	// the idle animation frame for throwing
 	// not sure why the frames weren't ordered
 	// with throwing first, unwise.
-	PlayerNoise(ent, start, PNOISE_WEAPON);
 	return 1;
 
 }
