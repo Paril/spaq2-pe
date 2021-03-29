@@ -360,6 +360,12 @@
 #define FL_ACCELERATE					0x20000000  // accelerative movement
 #define FL_RESPAWN                      0x80000000	// used for item respawning
 // SPAQ
+//ROGUE
+#define FL_MECHANICAL			0x00002000	// entity is mechanical, use sparks not blood
+#define FL_SAM_RAIMI			0x00004000	// entity is in sam raimi cam mode
+#define FL_DISGUISED			0x00008000	// entity is in disguise, monsters will not recognize.
+#define	FL_NOGIB				0x00010000	// player has been vaporized by a nuke, drop no gibs
+//ROGUE
 #define FL_NO_CHAMPS					0x40000000
 // SPAQ
 
@@ -460,12 +466,31 @@ ammo_t;
 #define AI_COMBAT_POINT                 0x00001000
 #define AI_MEDIC                        0x00002000
 #define AI_RESURRECTING                 0x00004000
+//ROGUE
+#define AI_WALK_WALLS			0x00008000
+#define AI_MANUAL_STEERING		0x00010000
+#define AI_TARGET_ANGER			0x00020000
+#define AI_DODGING				0x00040000
+#define AI_CHARGING				0x00080000
+#define AI_HINT_PATH			0x00100000
+#define	AI_IGNORE_SHOTS			0x00200000
+// PMM - FIXME - last second added for E3 .. there's probably a better way to do this, but
+// this works
+#define	AI_DO_NOT_COUNT			0x00400000	// set for healed monsters
+#define	AI_SPAWNED_CARRIER		0x00800000	// both do_not_count and spawned are set for spawned monsters
+#define	AI_SPAWNED_MEDIC_C		0x01000000	// both do_not_count and spawned are set for spawned monsters
+#define	AI_SPAWNED_WIDOW		0x02000000	// both do_not_count and spawned are set for spawned monsters
+#define AI_SPAWNED_MASK			0x03800000	// mask to catch all three flavors of spawned
+#define	AI_BLOCKED				0x04000000	// used by blocked_checkattack: set to say I'm attacking while blocked 
+											// (prevents run-attacks)
+//ROGUE
 
 //monster attack state
 #define AS_STRAIGHT                     1
 #define AS_SLIDING                      2
 #define AS_MELEE                        3
 #define AS_MISSILE                      4
+#define	AS_BLIND						5	// PMM - used by boss code to do nasty things even if it can't see you
 
 // armor types
 #define ARMOR_NONE                      0
@@ -970,7 +995,18 @@ extern edict_t *g_edicts;
 #define LLOFS(x) (ptrdiff_t)&(((level_locals_t *)0)->x)
 #define CLOFS(x) (ptrdiff_t)&(((gclient_t *)0)->x)
 
-#define random()        ((rand () & 0x7fff) / ((float)0x7fff))
+#ifndef NO_MT
+unsigned int mt_rand(void);
+void mt_srand(unsigned int seed);
+
+#define rand mt_rand
+#define srand mt_srand
+
+#undef RAND_MAX
+#define RAND_MAX 0xFFFFFFFF
+#endif
+
+#define random()        ((float)(rand () & RAND_MAX) / RAND_MAX)
 #define crandom()       (2.0 * (random() - 0.5))
 
 #define DMFLAGS(x)     (((int)dmflags->value & x) != 0)
@@ -1973,6 +2009,30 @@ typedef struct {
     int         power_armor_power;
 
 	// SPAQ
+//ROGUE
+	qboolean	(*blocked)(edict_t *self, float dist);
+//	edict_t		*last_hint;			// last hint_path the monster touched
+	int		last_hint_framenum;		// last time the monster checked for hintpaths.
+	edict_t		*goal_hint;			// which hint_path we're trying to get to
+	int			medicTries;
+	edict_t		*badMedic1, *badMedic2;	// these medics have declared this monster "unhealable"
+	edict_t		*healer;	// this is who is healing this monster
+	void		(*sidestep)(edict_t *self);
+	edict_t		*last_player_enemy;
+	// blindfire stuff .. the boolean says whether the monster will do it, and blind_fire_time is the timing
+	// (set in the monster) of the next shot
+	qboolean	blindfire;		// will the monster blindfire?
+	int		blind_fire_framenum;
+	vec3_t		blind_fire_target;
+	// used by the spawners to not spawn too much and keep track of #s of monsters spawned
+	int			monster_slots;
+	int			monster_used;
+	edict_t		*commander;
+	// powerup timers, used by widow, our friend
+	int			quad_framenum;
+	int			invincible_framenum;
+	int			double_framenum;
+//ROGUE
 	mchampion_t	champion;
 	int			item_offset;
 	int			items[MAX_MONSTER_ITEM_DROPS];

@@ -1051,6 +1051,10 @@ void SP_misc_explobox(edict_t *self)
     if (!self->dmg)
         self->dmg = 150;
 
+	// SPAQ
+	self->dmg *= 1.5;
+	// SPAQ
+
     self->die = barrel_delay;
     self->takedamage = DAMAGE_YES;
     self->monsterinfo.aiflags = AI_NOSTEP;

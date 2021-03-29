@@ -76,13 +76,17 @@ SV_CheckVelocity (edict_t * ent)
 //
 // bound velocity
 //
-  for (i = 0; i < 3; i++)
-    {
-      if (ent->velocity[i] > sv_maxvelocity->value)
-	ent->velocity[i] = sv_maxvelocity->value;
-      else if (ent->velocity[i] < -sv_maxvelocity->value)
-	ent->velocity[i] = -sv_maxvelocity->value;
-    }
+  // SPAQ
+  float len = VectorLength(ent->velocity);
+  
+  if (len > sv_maxvelocity->value)
+  {
+	  len = 1.0f / len;
+
+	  for (i = 0; i < 3; i++)
+		  ent->velocity[i] = (ent->velocity[i] * len) * sv_maxvelocity->value;
+  }
+  // SPAQ
 }
 
 /*

@@ -606,8 +606,9 @@ static void Cmd_Give_f (edict_t * ent)
 		*/
 		return;
 	}
-
-	/*if (give_all)
+	
+	// SPAQ
+	if (give_all)
 	{
 		for (i=0 ; i<game.num_items ; i++)
 		{
@@ -619,7 +620,8 @@ static void Cmd_Give_f (edict_t * ent)
 			ent->client->inventory[i] = 1;
 		}
 		return;
-	} */
+	}
+	// SPAQ
 
 	if (give_all)
 		return;
@@ -638,8 +640,10 @@ static void Cmd_Give_f (edict_t * ent)
 		}
 	}
 
-	if (!(it->flags & (IT_AMMO|IT_WEAPON|IT_ITEM)))
-		return;
+	// SPAQ
+	//if (!(it->flags & (IT_AMMO|IT_WEAPON|IT_ITEM)))
+	//	return;
+	// SPAQ
 
 
 	if (!it->pickup)

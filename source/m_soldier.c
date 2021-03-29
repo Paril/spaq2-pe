@@ -468,15 +468,19 @@ void soldier_fire(edict_t *self, int flash_number)
     } else if (self->s.skinnum <= 3) {
         monster_fire_shotgun(self, start, aimdir, 2, 1, DEFAULT_SHOTGUN_HSPREAD, DEFAULT_SHOTGUN_VSPREAD, DEFAULT_SHOTGUN_COUNT, flash_index);
     } else {
-        if (!(self->monsterinfo.aiflags & AI_HOLD_FRAME))
-            self->monsterinfo.pause_framenum = level.framenum + (3 + rand() % 8);
+		if (flash_number != 7) {
+			if (!(self->monsterinfo.aiflags & AI_HOLD_FRAME))
+				self->monsterinfo.pause_framenum = level.framenum + (3 + rand() % 8);
+		}
 
         monster_fire_bullet(self, start, aimdir, 2, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, flash_index);
-
-        if (level.framenum >= self->monsterinfo.pause_framenum)
-            self->monsterinfo.aiflags &= ~AI_HOLD_FRAME;
-        else
-            self->monsterinfo.aiflags |= AI_HOLD_FRAME;
+		
+		if (flash_number != 7) {
+			if (level.framenum >= self->monsterinfo.pause_framenum)
+				self->monsterinfo.aiflags &= ~AI_HOLD_FRAME;
+			else
+				self->monsterinfo.aiflags |= AI_HOLD_FRAME;
+		}
     }
 }
 
@@ -690,16 +694,26 @@ void soldier_fire8(edict_t *self)
     soldier_fire(self, 7);
 }
 
+void soldier_fire9(edict_t *self)
+{
+	if (self->s.skinnum >= 4) {
+		soldier_fire8(self);
+	}
+}
+
 void soldier_attack6_refire(edict_t *self)
 {
     if (self->enemy->health <= 0)
         return;
 
-    if (range(self, self->enemy) < RANGE_MID)
+    if (range(self, self->enemy) < RANGE_MID || !visible(self, self->enemy, MASK_OPAQUE) ||
+		random() < 0.3)
         return;
 
-    if (skill->value == 3)
+    if (skill->value == 3) {
         self->monsterinfo.nextframe = FRAME_runs03;
+		soldier_fire9(self);
+	}
 }
 
 mframe_t soldier_frames_attack6 [] = {
@@ -707,23 +721,28 @@ mframe_t soldier_frames_attack6 [] = {
     { ai_charge,  4, NULL },
     { ai_charge, 12, NULL },
     { ai_charge, 11, soldier_fire8 },
-    { ai_charge, 13, NULL },
-    { ai_charge, 18, NULL },
-    { ai_charge, 15, NULL },
-    { ai_charge, 14, NULL },
-    { ai_charge, 11, NULL },
-    { ai_charge,  8, NULL },
-    { ai_charge, 11, NULL },
-    { ai_charge, 12, NULL },
-    { ai_charge, 12, NULL },
+    { ai_charge, 13, soldier_fire9 },
+    { ai_charge, 18, soldier_fire9 },
+    { ai_charge, 15, soldier_fire9 },
+    { ai_charge, 14, soldier_fire9 },
+    { ai_charge, 11, soldier_fire9 },
+    { ai_charge,  8, soldier_fire9 },
+    { ai_charge, 11, soldier_fire9 },
+    { ai_charge, 12, soldier_fire9 },
+    { ai_charge, 12, soldier_fire9 },
     { ai_charge, 17, soldier_attack6_refire }
 };
 mmove_t soldier_move_attack6 = {FRAME_runs01, FRAME_runs14, soldier_frames_attack6, soldier_run};
 
 void soldier_attack(edict_t *self)
 {
+	// "special" attacks
 	if (random() < 0.3f) {
-		self->monsterinfo.currentmove = &soldier_move_attack3;
+		if (range(self, self->enemy) <= RANGE_MID && random() < 0.5f) {
+			self->monsterinfo.currentmove = &soldier_move_attack3;
+		} else {
+			self->monsterinfo.currentmove = &soldier_move_attack6;
+		}
 	} else if (self->s.skinnum < 4) {
         if (random() < 0.5f)
             self->monsterinfo.currentmove = &soldier_move_attack1;

@@ -710,7 +710,9 @@ void P_FallingDamage (edict_t * ent)
 		if (damage < 1)
 			damage = 1;
 		// zucc scale this up
-		damage *= 10;
+		// SPAQ
+		damage *= !deathmatch->value ? 2 : 10;
+		// SPAQ
 		VectorSet (dir, 0, 0, 1);
 
 		if (jump->value)

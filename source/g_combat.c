@@ -970,6 +970,9 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			take = 0;
 			save = damage;
 			SpawnDamage(te_sparks, point, normal, save);
+			bleeding = qfalse;
+			if (client)
+				client->leg_damage = qfalse;
 		}
 		// check for invincibility
 		else if (client && client->invincible_framenum > level.framenum)
@@ -982,6 +985,9 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 			}
 			take = 0;
 			save = damage;
+			bleeding = qfalse;
+			if (client)
+				client->leg_damage = qfalse;
 		}
 	}
 
