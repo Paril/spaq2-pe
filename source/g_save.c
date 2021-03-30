@@ -963,7 +963,6 @@ void SaveClientData (void)
 		pers->bleed_remain = ent->bleed_remain;
 		VectorCopy(ent->bleedloc_offset, pers->bleedloc_offset);
 		pers->bleeddelay = ent->bleeddelay;
-		pers->head_height = ent->head_height;
 	}
 }
 
@@ -1022,7 +1021,6 @@ void FetchClientEntData (edict_t *ent)
 	ent->bleed_remain = pers->bleed_remain;
 	VectorCopy(pers->bleedloc_offset, ent->bleedloc_offset);
 	ent->bleeddelay = pers->bleeddelay;
-	ent->head_height = pers->head_height;
 }
 
 /*

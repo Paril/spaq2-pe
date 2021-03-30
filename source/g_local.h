@@ -1660,7 +1660,6 @@ typedef struct
 	int			bleed_remain;
 	vec3_t		bleedloc_offset;	// location of bleeding (from origin)
 	int			bleeddelay;			// how long until we bleed again
-	float		head_height;
 	// SPAQ
 }
 client_persistant_t;

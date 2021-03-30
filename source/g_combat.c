@@ -615,7 +615,6 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				vec3_t new_point;
 				VerifyHeadShot(point, dir, head_height, new_point);
 				VectorSubtract(new_point, targ->s.origin, new_point);
-				//gi.cprintf(attacker, PRINT_HIGH, "z: %d y: %d x: %d\n", (int)(targ_maxs2 - new_point[2]),(int)(new_point[1]) , (int)(new_point[0]) );
 
 				if ((targ_maxs2 - new_point[2]) < head_height
 					&& (abs (new_point[1])) < head_height * .8
@@ -672,9 +671,12 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 					// SPAQ
 						gi.cprintf(targ, PRINT_HIGH, "Head damage\n");
 					// SPAQ
-					if (client && attacker->client)
+					if (attacker->client)
+						if (client)
+							gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the head\n", client->pers.netname);
+						else
+							gi.cprintf(attacker, PRINT_HIGH, "You hit them in the head\n");
 					// SPAQ
-						gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the head\n", client->pers.netname);
 
 					if (mod != MOD_KNIFE && mod != MOD_KNIFE_THROWN)
 						// SPAQ
@@ -684,30 +686,44 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				else if (mod == MOD_SNIPER)
 				{
 					// SPAQ
-					if (client && attacker->client)
+					if (attacker->client)
+						if (client)
+							gi.cprintf(attacker, PRINT_HIGH,
+								"%s has a Kevlar Helmet, too bad you have AP rounds...\n",
+								client->pers.netname);
+						else
+							gi.cprintf(attacker, PRINT_HIGH,
+								"They have a Kevlar Helmet, too bad you have AP rounds...\n");
+
+					if (client)
+						if (attacker->client)
+							gi.cprintf(targ, PRINT_HIGH,
+								"Kevlar Helmet absorbed some of %s's AP sniper round\n",
+								attacker->client->pers.netname);
+						else
+							gi.cprintf(targ, PRINT_HIGH,
+								"Kevlar Helmet absorbed some of their AP sniper round\n");
 					// SPAQ
-					{
-						gi.cprintf(attacker, PRINT_HIGH,
-							"%s has a Kevlar Helmet, too bad you have AP rounds...\n",
-							client->pers.netname);
-						gi.cprintf(targ, PRINT_HIGH,
-							"Kevlar Helmet absorbed some of %s's AP sniper round\n",
-							attacker->client->pers.netname);
-					}
 					damage = (int) (damage * 0.325);
 					gi.sound(targ, CHAN_VOICE, level.snd_headshot, 1, ATTN_NORM, 0);
 				}
 				else
 				{
 					// SPAQ
-					if (client && attacker->client)
+					if (attacker->client)
+						if (client)
+							gi.cprintf( attacker, PRINT_HIGH, "%s has a Kevlar Helmet - AIM FOR THE BODY!\n",
+								client->pers.netname );
+						else
+							gi.cprintf( attacker, PRINT_HIGH, "They have a Kevlar Helmet - AIM FOR THE BODY!\n");
+
+					if (client)
+						if (attacker->client)
+							gi.cprintf( targ, PRINT_HIGH, "Kevlar Helmet absorbed a part of %s's shot\n",
+								attacker->client->pers.netname );
+						else
+							gi.cprintf( targ, PRINT_HIGH, "Kevlar Helmet absorbed a part of their shot\n");
 					// SPAQ
-					{
-						gi.cprintf( attacker, PRINT_HIGH, "%s has a Kevlar Helmet - AIM FOR THE BODY!\n",
-							client->pers.netname );
-						gi.cprintf( targ, PRINT_HIGH, "Kevlar Helmet absorbed a part of %s's shot\n",
-							attacker->client->pers.netname );
-					}
 					gi.sound(targ, CHAN_ITEM, level.snd_vesthit, 1, ATTN_NORM, 0);
 					damage = (int)(damage / 2);
 					bleeding = 0;
@@ -722,14 +738,19 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				damage = damage * .25;
 				
 				// SPAQ
-				if (client && attacker->client)
-				// SPAQ
+				if (attacker->client)
 				{
-					strcpy( attacker->client->last_damaged_players, client->pers.netname );
-					Stats_AddHit( attacker, mod, LOC_LDAM );
-					gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the legs\n",
-						client->pers.netname);
+					if (client)
+					{
+						strcpy( attacker->client->last_damaged_players, client->pers.netname );
+						Stats_AddHit( attacker, mod, LOC_LDAM );
+						gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the legs\n",
+							client->pers.netname);
+					}
+					else
+						gi.cprintf(attacker, PRINT_HIGH, "You hit them in the legs\n");
 				}
+				// SPAQ
 				
 				// SPAQ
 				if (client)
@@ -754,14 +775,19 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 					gi.cprintf(targ, PRINT_HIGH, "Stomach damage\n");
 
 				// SPAQ
-				if (client && attacker->client)
-				// SPAQ
+				if (attacker->client)
 				{
-					strcpy( attacker->client->last_damaged_players, client->pers.netname );
-					Stats_AddHit(attacker, mod, LOC_SDAM);
-					gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the stomach\n",
-						client->pers.netname);
+					if (client)
+					{
+						strcpy( attacker->client->last_damaged_players, client->pers.netname );
+						Stats_AddHit(attacker, mod, LOC_SDAM);
+						gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the stomach\n",
+							client->pers.netname);
+					}
+					else
+						gi.cprintf(attacker, PRINT_HIGH, "You hit them in the stomach\n");
 				}
+				// SPAQ
 					
 				//TempFile bloody gibbing
 				if (mod == MOD_SNIPER && sv_gib->value)
@@ -796,10 +822,12 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 						gi.cprintf(targ, PRINT_HIGH, "Chest damage\n");
 
 					// SPAQ
-					if (client && attacker->client)
-					// SPAQ
-						gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the chest\n",
-							client->pers.netname);
+					if (attacker->client)
+						if (client)
+							gi.cprintf(attacker, PRINT_HIGH, "You hit %s in the chest\n",
+								client->pers.netname);
+						else
+							gi.cprintf(attacker, PRINT_HIGH, "You hit them in the chest\n");
 
 					//TempFile bloody gibbing
 					if (mod == MOD_SNIPER && sv_gib->value)
@@ -808,27 +836,39 @@ T_Damage (edict_t * targ, edict_t * inflictor, edict_t * attacker, vec3_t dir,
 				else if (mod == MOD_SNIPER)
 				{
 					// SPAQ
-					if (client && attacker->client)
+					if (attacker->client)
+						if (client)
+							gi.cprintf (attacker, PRINT_HIGH, "%s has a Kevlar Vest, too bad you have AP rounds...\n",
+								client->pers.netname);
+						else
+							gi.cprintf (attacker, PRINT_HIGH, "They have a Kevlar Vest, too bad you have AP rounds...\n");
+
+					if (client)
+						if (attacker->client)
+							gi.cprintf (targ, PRINT_HIGH, "Kevlar Vest absorbed some of %s's AP sniper round\n",
+								attacker->client->pers.netname);
+						else
+							gi.cprintf (targ, PRINT_HIGH, "Kevlar Vest absorbed some of their AP sniper round\n");
 					// SPAQ
-					{
-						gi.cprintf (attacker, PRINT_HIGH, "%s has a Kevlar Vest, too bad you have AP rounds...\n",
-							client->pers.netname);
-						gi.cprintf (targ, PRINT_HIGH, "Kevlar Vest absorbed some of %s's AP sniper round\n",
-							attacker->client->pers.netname);
-					}
 					damage = damage * .325;
 				}
 				else
 				{
 					// SPAQ
-					if (client && attacker->client)
+					if (attacker->client)
+						if (client)
+							gi.cprintf (attacker, PRINT_HIGH, "%s has a Kevlar Vest, too bad you have AP rounds...\n",
+								client->pers.netname);
+						else
+							gi.cprintf (attacker, PRINT_HIGH, "They have a Kevlar Vest, too bad you have AP rounds...\n");
+
+					if (client)
+						if (attacker->client)
+							gi.cprintf (targ, PRINT_HIGH, "Kevlar Vest absorbed some of %s's shot\n",
+								attacker->client->pers.netname);
+						else
+							gi.cprintf (targ, PRINT_HIGH, "Kevlar Vest absorbed some of their shot\n");
 					// SPAQ
-					{
-						gi.cprintf(attacker, PRINT_HIGH, "%s has a Kevlar Vest - AIM FOR THE HEAD!\n",
-							client->pers.netname);
-						gi.cprintf(targ, PRINT_HIGH, "Kevlar Vest absorbed most of %s's shot\n",
-							attacker->client->pers.netname);
-					}
 					gi.sound(targ, CHAN_ITEM, level.snd_vesthit, 1, ATTN_NORM, 0);
 					damage = (int)(damage / 10);
 					bleeding = 0;
