@@ -169,10 +169,10 @@ void monster_fire_rocket(edict_t *self, vec3_t start, vec3_t dir, int damage, in
 {
     monster_setup_accuracy(self, start, (float **) &dir);
 
-    fire_grenade2(self, start, dir, damage * 3, speed, 2 * HZ, damage * 6, false);
+    fire_grenade2(self, start, dir, damage * 4, speed, 2 * HZ, damage * 8, false);
 
     if (MONSTER_IS_CHAMP(self, CHAMPION_STRENGTH))
-        fire_grenade2(self, start, dir, damage, speed * 2, 0.8 * HZ, damage * 4, false);
+        fire_grenade2(self, start, dir, damage * 2, speed * 2, 0.8 * HZ, damage * 6, false);
 
     gi.WriteByte(svc_muzzleflash2);
     gi.WriteShort(self - g_edicts);
