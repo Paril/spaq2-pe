@@ -417,7 +417,7 @@ void Cmd_Help_f (edict_t * ent)
 
 static int SetSPAQViewString(edict_t *ent, edict_t *monster)
 {
-	int cs = CS_GENERAL + monster->s.number;
+	int cs = CS_GENERAL + ent->s.number;
 	char temp[CS_SIZE(CS_GENERAL)] = { 0 };
 
 	if (MONSTER_IS_CHAMP(monster, CHAMPION_HASTE))
